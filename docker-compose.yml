@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: example_user
+      POSTGRES_PASSWORD: example_password
+      POSTGRES_DB: example_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_SHARED_BUFFERS: "256MB"
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "768MB"
+      POSTGRES_MAINTENANCE_WORK_MEM: "64MB"
+      POSTGRES_WORK_MEM: "64MB"
+      POSTGRES_MAX_CONNECTIONS: "200"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00" # Limita o uso de CPU a 2 núcleos
+          memory: "4G" # Limita o uso de memória a 4GB
+        reservations:
+          cpus: "1.00" # Reserva 1 núcleo de CPU
+          memory: "2G" # Reserva 2GB de memória
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U example_user"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
