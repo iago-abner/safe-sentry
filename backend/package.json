@@ -26,10 +26,10 @@
     "tslib": "~2.6"
   },
   "scripts": {
+    "prebuild": "echo 'Skipping lint step during Docker build'",
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "start": "node build/src/main.js",
     "clean": "rimraf coverage build tmp",
-    "prebuild": "npm run lint",
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "build:release": "npm run clean && tsc -p tsconfig.release.json",

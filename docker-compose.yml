@@ -1,34 +1,4 @@
 services:
-  influxdb:
-    image: influxdb:1.8
-    container_name: influxdb
-    ports:
-      - "8086:8086"
-    environment:
-      INFLUXDB_DB: k6
-      INFLUXDB_ADMIN_USER: admin
-      INFLUXDB_ADMIN_PASSWORD: admin
-    networks:
-      - grafana-net
-
-  grafana:
-    image: grafana/grafana
-    user: root
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on:
-      - influxdb
-      - db
-      - prometheus
-    volumes:
-      - ./infra/grafana-data:/var/lib/grafana
-    networks:
-      - grafana-net
-
   db:
     image: postgres:15
     container_name: postgres
@@ -52,7 +22,61 @@ services:
           cpus: "0.75"
           memory: "1GB"
     networks:
-      - grafana-net
+      - project-net
+
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    ports:
+      - "4242:4242"
+    environment:
+      - DATABASE_URL=postgresql://iago:iago@db:5432/trafego
+    depends_on:
+      - db
+    networks:
+      - project-net
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - project-net
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: k6
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: admin
+    networks:
+      - project-net
+
+  grafana:
+    image: grafana/grafana
+    user: root
+    container_name: grafana
+    ports:
+      - "3003:3003"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - influxdb
+      - db
+      - prometheus
+    volumes:
+      - ./infra/grafana-data:/var/lib/grafana
+    networks:
+      - project-net
 
   postgres_exporter:
     image: prometheuscommunity/postgres-exporter
@@ -62,7 +86,7 @@ services:
     ports:
       - "9187:9187"
     networks:
-      - grafana-net
+      - project-net
     depends_on:
       - db
 
@@ -74,7 +98,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - grafana-net
+      - project-net
     depends_on:
       - postgres_exporter
 
@@ -83,4 +107,4 @@ volumes:
   grafana-data:
 
 networks:
-  grafana-net:
+  project-net:
