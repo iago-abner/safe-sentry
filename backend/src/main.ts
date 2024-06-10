@@ -1,16 +1,10 @@
 import express from 'express'
-import { Pool } from 'pg'
+import db from './pg-connection'
 
 const app = express()
-app.use(express.json())
+const PORT = 4242
 
-const pool = new Pool({
-  user: 'iago',
-  host: 'localhost',
-  database: 'trafego',
-  password: 'iago',
-  port: 5432
-})
+app.use(express.json())
 
 app.post('/rastreamento', async (req, res) => {
   const {
@@ -27,7 +21,7 @@ app.post('/rastreamento', async (req, res) => {
   } = req.body
 
   try {
-    const result = await pool.query(
+    const result = await db.pool.query(
       'INSERT INTO rastreamento (latitude, longitude, velocidade, horario_rastreador, bateria, bateria_veiculo, ignicao, altitude, direcao, odometro) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
         latitude,
@@ -42,6 +36,7 @@ app.post('/rastreamento', async (req, res) => {
         odometro
       ]
     )
+
     res.status(201).json(result.rows[0])
   } catch (error) {
     console.error('Erro ao inserir dados no banco de dados:', error)
@@ -53,6 +48,6 @@ app.get('/', (_, res) => {
   res.send('Hello World!')
 })
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000')
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`)
 })
