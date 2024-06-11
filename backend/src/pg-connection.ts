@@ -6,11 +6,7 @@ class Database {
 
   private constructor() {
     this.pool = new Pool({
-      user: 'iago',
-      host: 'localhost',
-      database: 'trafego',
-      password: 'iago',
-      port: 5432
+      connectionString: process.env.DATABASE_URL
     })
   }
 

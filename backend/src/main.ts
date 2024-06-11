@@ -39,7 +39,6 @@ app.post('/rastreamento', async (req, res) => {
 
     res.status(201).json(result.rows[0])
   } catch (error) {
-    console.error('Erro ao inserir dados no banco de dados:', error)
     res.status(500).json({ error: 'Erro ao inserir dados no banco de dados' })
   }
 })
