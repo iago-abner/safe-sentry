@@ -9,15 +9,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./infra/boot.sql:/docker-entrypoint-initdb.d/boot.sql
-      - ./infra/postgres-data:/var/lib/postgresql/data
+      - ./infra/db/boot.sql:/docker-entrypoint-initdb.d/boot.sql
+      - ./infra/db/postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U iago -d trafego"]
       interval: 30s
       timeout: 30s
       retries: 3
     networks:
-      - project-network
+      - application
 
   backend1: &backend
     build:
@@ -30,7 +30,7 @@ services:
     depends_on:
       - db
     networks:
-      - project-network
+      - application
 
   backend2:
     <<: *backend
@@ -42,7 +42,7 @@ services:
     depends_on:
       - db
     networks:
-      - project-network
+      - application
 
   frontend:
     build:
@@ -54,61 +54,7 @@ services:
       - backend1
       - backend2
     networks:
-      - project-network
-
-  influxdb:
-    image: influxdb:1.8
-    container_name: influxdb
-    ports:
-      - "8086:8086"
-    environment:
-      INFLUXDB_DB: k6
-      INFLUXDB_ADMIN_USER: admin
-      INFLUXDB_ADMIN_PASSWORD: admin
-    networks:
-      - project-network
-
-  grafana:
-    image: grafana/grafana
-    user: root
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on:
-      - influxdb
-      - db
-      - prometheus
-    volumes:
-      - ./infra/grafana-data:/var/lib/grafana
-    networks:
-      - project-network
-
-  postgres_exporter:
-    image: prometheuscommunity/postgres-exporter
-    container_name: postgres_exporter
-    environment:
-      - DATA_SOURCE_NAME=postgresql://iago:iago@db:5432/trafego?sslmode=disable
-    ports:
-      - "9187:9187"
-    networks:
-      - project-network
-    depends_on:
-      - db
-
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    volumes:
-      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    networks:
-      - project-network
-    depends_on:
-      - postgres_exporter
+      - application
 
   nginx:
     image: nginx:latest
@@ -121,12 +67,68 @@ services:
       - backend1
       - backend2
     networks:
-      - project-network
+      - application
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: k6
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: admin
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    user: root
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - influxdb
+      - prometheus
+    volumes:
+      - ./infra/monitoring/grafana-data:/var/lib/grafana
+    networks:
+      - monitoring
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres_exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://iago:iago@db:5432/trafego?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - monitoring
+      - application
+    depends_on:
+      - db
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    depends_on:
+      - postgres_exporter
 
 volumes:
   postgres-data:
   grafana-data:
 
 networks:
-  project-network:
+  application:
+    driver: bridge
+  monitoring:
     driver: bridge
