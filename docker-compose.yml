@@ -16,6 +16,14 @@ services:
       interval: 30s
       timeout: 30s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     networks:
       - application
 
@@ -78,6 +86,14 @@ services:
       INFLUXDB_DB: k6
       INFLUXDB_ADMIN_USER: admin
       INFLUXDB_ADMIN_PASSWORD: admin
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     networks:
       - monitoring
 
