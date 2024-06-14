@@ -5,14 +5,13 @@ services:
     environment:
       - POSTGRES_PASSWORD=iago
       - POSTGRES_USER=iago
-      - POSTGRES_DB=trafego
+      - POSTGRES_DB=Projeto
     ports:
       - "5432:5432"
     volumes:
       - ./infra/db/boot.sql:/docker-entrypoint-initdb.d/boot.sql
-      - ./infra/db/postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U iago -d trafego"]
+      test: ["CMD-SHELL", "pg_isready -U iago -d Projeto"]
       interval: 30s
       timeout: 30s
       retries: 3
@@ -34,7 +33,7 @@ services:
     ports:
       - "4240:4242"
     environment:
-      - DATABASE_URL=postgresql://iago:iago@db:5432/trafego
+      - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
     depends_on:
       - db
     networks:
@@ -46,7 +45,7 @@ services:
     ports:
       - "4241:4242"
     environment:
-      - DATABASE_URL=postgresql://iago:iago@db:5432/trafego
+      - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
     depends_on:
       - db
     networks:
@@ -118,7 +117,7 @@ services:
     image: prometheuscommunity/postgres-exporter
     container_name: postgres_exporter
     environment:
-      - DATA_SOURCE_NAME=postgresql://iago:iago@db:5432/trafego?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://iago:iago@db:5432/Projeto?sslmode=disable
     ports:
       - "9187:9187"
     networks:
@@ -140,7 +139,6 @@ services:
       - postgres_exporter
 
 volumes:
-  postgres-data:
   grafana-data:
 
 networks:

@@ -1,2 +1,2 @@
-monitoring
-db
+db/postgres-data
+monitoring/grafana-data
