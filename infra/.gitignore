@@ -1,2 +1,3 @@
 db/postgres-data
 monitoring/grafana-data
+rabbitmq-data
