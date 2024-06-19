@@ -6,7 +6,7 @@ class PostgresRespository {
 
   private constructor() {
     this.pool = new Pool({
-      connectionString: 'postgresql://iago:iago@localhost:5432/Projeto'
+      connectionString: process.env.DATABASE_URL
     })
   }
 

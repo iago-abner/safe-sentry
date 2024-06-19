@@ -34,7 +34,9 @@ services:
       - "4240:4242"
     environment:
       - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
+      - rabbitmq
       - db
     networks:
       - application
@@ -46,10 +48,7 @@ services:
       - "4241:4242"
     environment:
       - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
-    depends_on:
-      - db
-    networks:
-      - application
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
 
   frontend:
     build:
@@ -93,6 +92,9 @@ services:
       RABBITMQ_DEFAULT_PASS: admin
     volumes:
       - ./infra/rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - application
+      - monitoring
 
   influxdb:
     image: influxdb:1.8

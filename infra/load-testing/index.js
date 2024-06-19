@@ -45,15 +45,11 @@ export default function () {
     odometro: getRandomFloat(0, 999999.9),
   };
 
-  let res = http.post(
-    "http://localhost:80/rastreamento",
-    JSON.stringify(payload),
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  let res = http.post("http://localhost:80/location", JSON.stringify(payload), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
   const resultTime = check(res, {
     "response time is below 500ms": (r) => r.timings.duration < 500,

@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express from 'express'
 import * as amqp from 'amqplib'
 import { rabbitmq } from './repositories/rabbitmq'

@@ -36,7 +36,9 @@ const processBatch = async (messages: TLocation[]) => {
 
 export const locationWorker = async (channel: amqp.Channel) => {
   const QUEUE_NAME = 'location_queue'
+  const BATCH_SIZE = 100
   let messagesBuffer: TLocation[] = []
+  let messageObjects: amqp.Message[] = []
 
   channel.consume(
     QUEUE_NAME,
@@ -44,13 +46,20 @@ export const locationWorker = async (channel: amqp.Channel) => {
       if (msg !== null) {
         const message = JSON.parse(msg.content.toString())
         messagesBuffer.push(message)
+        messageObjects.push(msg)
 
-        if (messagesBuffer.length >= 5) {
-          processBatch(messagesBuffer)
-          messagesBuffer = []
+        if (messagesBuffer.length >= BATCH_SIZE) {
+          try {
+            processBatch(messagesBuffer)
+            messageObjects.forEach((msgObj) => channel.ack(msgObj))
+          } catch (error) {
+            console.error('Error processing batch:', error)
+            messageObjects.forEach((msgObj) => channel.nack(msgObj))
+          } finally {
+            messagesBuffer = []
+            messageObjects = []
+          }
         }
-
-        channel.ack(msg)
       }
     },
     {
