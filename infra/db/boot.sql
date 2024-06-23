@@ -28,6 +28,14 @@ CREATE TABLE IF NOT EXISTS Frota (
     FOREIGN KEY (usuario_id) REFERENCES Usuario(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS FrotaVeiculo (
+    frota_id INT,
+    veiculo_id INT,
+    PRIMARY KEY (frota_id, veiculo_id),
+    FOREIGN KEY (frota_id) REFERENCES Frota(id) ON DELETE CASCADE,
+    FOREIGN KEY (veiculo_id) REFERENCES Veiculo(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS Rastreador (
     id SERIAL PRIMARY KEY,
     veiculo_id INT,
