@@ -61,6 +61,9 @@ CREATE TABLE IF NOT EXISTS Localizacao (
     FOREIGN KEY (rastreador_id) REFERENCES Rastreador(id) ON DELETE CASCADE
 );
 
+CREATE INDEX idx_localizacao_horario_rastreador ON Localizacao(horario_rastreador);
+
+
 CREATE TABLE IF NOT EXISTS Trajeto (
     id SERIAL PRIMARY KEY,
     veiculo_id INT,

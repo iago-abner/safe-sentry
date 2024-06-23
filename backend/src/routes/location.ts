@@ -26,17 +26,29 @@ location.post('/', async (req, res) => {
 })
 
 location.get('/:vehicleId', async (req, res) => {
-  try {
-    const { vehicleId } = req.params
+  const { vehicleId } = req.params
+  const { startDate, endDate } = req.query
 
+  try {
     const result = await pg.query(
-      'SELECT * FROM Localizacao WHERE veiculo_id = $1',
-      [vehicleId]
+      `SELECT l.*
+       FROM Localizacao l
+       JOIN Rastreador r ON l.rastreador_id = r.id
+       WHERE r.veiculo_id = $1
+         AND l.horario_rastreador >= $2
+         AND l.horario_rastreador <= $3`,
+      [vehicleId, startDate, endDate]
     )
+
+    if (result.rows.length === 0) {
+      res.status(404).json({
+        message: 'Nenhuma localização encontrada para este intervalo de tempo'
+      })
+    }
 
     res.status(200).json(result.rows)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: 'Erro ao buscar localizações', error })
   }
 })
 
