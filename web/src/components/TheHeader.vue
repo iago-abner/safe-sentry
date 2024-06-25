@@ -6,9 +6,9 @@ import { RouterLink } from 'vue-router'
   <nav>
     <RouterLink to="/">Início</RouterLink>
     <RouterLink to="/vehicles">Veículos</RouterLink>
+    <RouterLink to="/drivers">Motoristas</RouterLink>
     <RouterLink to="/alerts">Alertas</RouterLink>
     <RouterLink to="/reports">Relatórios</RouterLink>
-    <RouterLink to="/drivers">Motoristas</RouterLink>
   </nav>
 </template>
 
