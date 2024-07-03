@@ -22,8 +22,6 @@ class PostgresRespository {
 }
 
 const pg = PostgresRespository.getInstance().pool
-const app = express()
-const PORT = 4242
 
 type TLocation = {
   latitude: number
@@ -38,10 +36,32 @@ type TLocation = {
   odometro: number
 }
 
-export let channel: amqp.Channel
+const app = express()
+const PORT = 4242
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+app.post('/', async (req, res) => {
+  try {
+    const message = req.body
+
+    const registerQueue = channel.sendToQueue(
+      'location_queue',
+      Buffer.from(JSON.stringify(message)),
+      {
+        persistent: true
+      }
+    )
+
+    res.status(201).json({
+      registerQueue
+    })
+  } catch (error) {
+    console.error('Erro ao enviar mensagem para o RabbitMQ:', error)
+    res.status(500).json({ error: 'Erro ao enviar dados para a fila' })
+  }
+})
 
 const processBatch = async (messages: TLocation[]) => {
   const values = messages.map((msg) => [
@@ -75,38 +95,7 @@ const processBatch = async (messages: TLocation[]) => {
   }
 }
 
-app.post('/location', async (req, res) => {
-  try {
-    const message = req.body
-
-    const registerQueue = channel.sendToQueue(
-      'location_queue',
-      Buffer.from(JSON.stringify(message)),
-      {
-        persistent: true
-      }
-    )
-
-    res.status(201).json({
-      registerQueue
-    })
-  } catch (error) {
-    console.error('Erro ao enviar mensagem para o RabbitMQ:', error)
-    res.status(500).json({ error: 'Erro ao enviar dados para a fila' })
-  }
-})
-
-const setup = async () => {
-  const queueName = 'location_queue'
-  try {
-    const connection = await amqp.connect(process.env.RABBITMQ_URL)
-    const channel = await connection.createChannel()
-    await channel.assertQueue(queueName, { durable: true })
-  } catch (error) {
-    console.error('Failed to setup RabbitMQ:', error)
-    process.exit(1)
-  }
-
+const locationWorker = async (channel: amqp.Channel) => {
   const QUEUE_NAME = 'location_queue'
   const BATCH_SIZE = 100
   let messagesBuffer: TLocation[] = []
@@ -152,6 +141,27 @@ const setup = async () => {
     }
     process.exit(0)
   })
+}
+
+async function rabbitmq({ queueName }: { queueName: string }) {
+  try {
+    const connection = await amqp.connect(process.env.RABBITMQ_URL)
+    const channel = await connection.createChannel()
+    await channel.assertQueue(queueName, { durable: true })
+    return channel
+  } catch (error) {
+    console.error('Failed to setup RabbitMQ:', error)
+    process.exit(1)
+  }
+}
+
+// app.use(router)
+
+export let channel: amqp.Channel
+
+const setup = async () => {
+  channel = await rabbitmq({ queueName: 'location_queue' })
+  locationWorker(channel)
 }
 
 app.listen(PORT, async () => {
