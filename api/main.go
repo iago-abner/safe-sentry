@@ -164,16 +164,18 @@ func main() {
 
     app := fiber.New()
 
-    app.Post("/location", func(c *fiber.Ctx) error {
+		app.Post("/location", func(c *fiber.Ctx) error {
         var message TLocation
         if err := c.BodyParser(&message); err != nil {
             return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
         }
-
+				fmt.Println("Received location data:", message)
         body, err := json.Marshal(message)
         if err != nil {
             return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
         }
+
+
 
         err = channel.Publish(
             "",

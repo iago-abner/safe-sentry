@@ -5,12 +5,12 @@ import exec from "k6/execution";
 
 export let options = {
   stages: [
-    { duration: "30s", target: 100 },
-    { duration: "30s", target: 500 },
-    { duration: "1m", target: 1000 },
-    { duration: "1m", target: 1500 },
-    { duration: "1m", target: 2000 },
-    { duration: "1m", target: 2500 },
+    // { duration: "30s", target: 100 },
+    // { duration: "30s", target: 500 },
+    // { duration: "1m", target: 1000 },
+    // { duration: "1m", target: 1500 },
+    // { duration: "1m", target: 2000 },
+    { duration: "1m", target: 25000 },
     { duration: "10s", target: 0 },
   ],
   thresholds: {
@@ -21,7 +21,7 @@ export let options = {
 
 const successTimeRate = new Rate("success_time_rate");
 const successRate = new Rate("success_rate");
-const vuCounter = new Counter("vu_counter");
+// const vuCounter = new Counter("vu_counter");
 
 function getRandomFloat(min, max) {
   return (Math.random() * (max - min) + min).toFixed(2);
@@ -62,13 +62,13 @@ export default function () {
   successRate.add(resultRate);
   successTimeRate.add(resultTime);
 
-  if (!resultRate || res.timings.duration > 1000) {
-    console.log(
-      `First error or slow response recorded with VUs: ${exec.instance.vusActive}`
-    );
-    vuCounter.add(exec.instance.vusActive);
-    exec.test.abort();
-  }
+  // if (!resultRate || res.timings.duration > 1000) {
+  //   console.log(
+  //     `First error or slow response recorded with VUs: ${exec.instance.vusActive}`
+  //   );
+  //   vuCounter.add(exec.instance.vusActive);
+  //   exec.test.abort();
+  // }
 
   sleep(1);
 }

@@ -63,6 +63,18 @@ app.post('/', async (req, res) => {
   }
 })
 
+export let channel: amqp.Channel
+
+const setup = async () => {
+  channel = await rabbitmq({ queueName: 'location_queue' })
+  locationWorker(channel)
+}
+
+app.listen(PORT, async () => {
+  await setup()
+  console.log(`Server is running on port ${PORT}`)
+})
+
 const processBatch = async (messages: TLocation[]) => {
   const values = messages.map((msg) => [
     msg.latitude,
@@ -154,17 +166,3 @@ async function rabbitmq({ queueName }: { queueName: string }) {
     process.exit(1)
   }
 }
-
-// app.use(router)
-
-export let channel: amqp.Channel
-
-const setup = async () => {
-  channel = await rabbitmq({ queueName: 'location_queue' })
-  locationWorker(channel)
-}
-
-app.listen(PORT, async () => {
-  console.log(`Server is running on port ${PORT}`)
-  await setup()
-})
