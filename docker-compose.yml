@@ -83,11 +83,11 @@ services:
     networks:
       - application
 
-  # redis:
-  #   image: redis:7.2.5
-  #   container_name: redis
-  #   ports:
-  #     - "6379:6379"
+  redis:
+    image: redis:7.2.5
+    container_name: redis
+    ports:
+      - "6379:6379"
 
   rabbitmq:
     image: rabbitmq:3.13.3-management
@@ -104,91 +104,89 @@ services:
       - application
       - monitoring
 
-  # influxdb:
-  #   image: influxdb:1.8
-  #   container_name: influxdb
-  #   ports:
-  #     - "8086:8086"
-  #   environment:
-  #     INFLUXDB_DB: k6
-  #     INFLUXDB_ADMIN_USER: admin
-  #     INFLUXDB_ADMIN_PASSWORD: admin
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.75"
-  #         memory: 512M
-  #       reservations:
-  #         cpus: "0.5"
-  #         memory: 256M
-  #   networks:
-  #     - monitoring
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: k6
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: admin
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    networks:
+      - monitoring
 
-  # grafana:
-  #   image: grafana/grafana
-  #   user: root
-  #   container_name: grafana
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - GF_SECURITY_ADMIN_USER=admin
-  #     - GF_SECURITY_ADMIN_PASSWORD=admin
-  #   depends_on:
-  #     - influxdb
-  #     - prometheus
-  #   volumes:
-  #     - ./infra/monitoring/grafana-data:/var/lib/grafana
-  #   networks:
-  #     - monitoring
+  grafana:
+    image: grafana/grafana
+    user: root
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - influxdb
+      - prometheus
+    volumes:
+      - ./infra/monitoring/grafana-data:/var/lib/grafana
+    networks:
+      - monitoring
 
-  # postgres_exporter:
-  #   image: prometheuscommunity/postgres-exporter
-  #   container_name: postgres_exporter
-  #   environment:
-  #     - DATA_SOURCE_NAME=postgresql://iago:iago@db:5432/Projeto?sslmode=disable
-  #   ports:
-  #     - "9187:9187"
-  #   networks:
-  #     - monitoring
-  #     - application
-  #   depends_on:
-  #     - db
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: postgres_exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://iago:iago@db:5432/Projeto?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - monitoring
+      - application
+    depends_on:
+      - db
 
-  # prometheus:
-  #   image: prom/prometheus
-  #   container_name: prometheus
-  #   volumes:
-  #     - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-  #   ports:
-  #     - "9090:9090"
-  #   networks:
-  #     - monitoring
-  #   depends_on:
-  #     - postgres_exporter
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    depends_on:
+      - postgres_exporter
 
-  # cadvisor:
-  # image: gcr.io/cadvisor/cadvisor:v0.49.1
-  # container_name: cadvisor
-  # volumes:
-  #   - /:/rootfs:ro
-  #   - /var/run:/var/run:ro
-  #   - /sys:/sys:ro
-  #   - /var/lib/docker/:/var/lib/docker:ro
-  #   - /dev/disk/:/dev/disk:ro
-  # privileged: true
-  # devices:
-  #   - /dev/kmsg
-  # ports:
-  #   - "8080:8080"
-  # restart: unless-stopped
-  # networks:
-  #   - monitoring
+  cadvisor:
+  image: gcr.io/cadvisor/cadvisor:v0.49.1
+  container_name: cadvisor
+  volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:ro
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    - /dev/disk/:/dev/disk:ro
+  privileged: true
+  devices:
+    - /dev/kmsg
+  ports:
+    - "8080:8080"
+  restart: unless-stopped
+  networks:
+    - monitoring
 
 volumes:
   grafana-data:
 
 networks:
   application:
-    driver: bridge
   monitoring:
-    driver: bridge
