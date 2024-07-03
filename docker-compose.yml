@@ -17,9 +17,9 @@ services:
       retries: 3
     deploy:
       resources:
-        limits:
-          cpus: "0.75"
-          memory: 512M
+        # limits:
+        #   cpus: "0.75"
+        #   memory: 1GB
         reservations:
           cpus: "0.5"
           memory: 256M
@@ -83,11 +83,11 @@ services:
     networks:
       - application
 
-  redis:
-    image: redis:7.2.5
-    container_name: redis
-    ports:
-      - "6379:6379"
+  # redis:
+  #   image: redis:7.2.5
+  #   container_name: redis
+  #   ports:
+  #     - "6379:6379"
 
   rabbitmq:
     image: rabbitmq:3.13.3-management
@@ -115,9 +115,9 @@ services:
       INFLUXDB_ADMIN_PASSWORD: admin
     deploy:
       resources:
-        limits:
-          cpus: "0.75"
-          memory: 512M
+        # limits:
+        #   cpus: "0.75"
+        #   memory: 1GB
         reservations:
           cpus: "0.5"
           memory: 256M
@@ -167,22 +167,22 @@ services:
       - postgres_exporter
 
   cadvisor:
-  image: gcr.io/cadvisor/cadvisor:v0.49.1
-  container_name: cadvisor
-  volumes:
-    - /:/rootfs:ro
-    - /var/run:/var/run:ro
-    - /sys:/sys:ro
-    - /var/lib/docker/:/var/lib/docker:ro
-    - /dev/disk/:/dev/disk:ro
-  privileged: true
-  devices:
-    - /dev/kmsg
-  ports:
-    - "8080:8080"
-  restart: unless-stopped
-  networks:
-    - monitoring
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - monitoring
 
 volumes:
   grafana-data:
