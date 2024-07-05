@@ -34,7 +34,7 @@ var channel *amqp.Channel
 var messagesBuffer []TLocation
 var messageObjects []*amqp.Delivery
 
-const batchSize = 3
+const batchSize = 100
 
 func main() {
 	// Carregar variáveis de ambiente do arquivo .env
@@ -153,8 +153,6 @@ func locationWorker(queueName string) {
 	if err != nil {
 		log.Fatalf("Failed to register a consumer: %v", err)
 	}
-
-	log.Printf("Consuming messages from queue %s", queueName)
 
 	for msg := range msgs {
 		var message TLocation

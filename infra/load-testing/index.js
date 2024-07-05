@@ -5,12 +5,11 @@ import exec from "k6/execution";
 
 export let options = {
   stages: [
-    // { duration: "30s", target: 100 },
-    // { duration: "30s", target: 500 },
-    // { duration: "1m", target: 1000 },
-    // { duration: "1m", target: 1500 },
-    // { duration: "1m", target: 2000 },
-    { duration: "1m", target: 25000 },
+    { duration: "1m", target: 2000 },
+    { duration: "1m", target: 4000 },
+    { duration: "1m", target: 6000 },
+    { duration: "1m", target: 8000 },
+    { duration: "1m", target: 10000 },
     { duration: "10s", target: 0 },
   ],
   thresholds: {

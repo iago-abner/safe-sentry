@@ -88,17 +88,17 @@ services:
   #   networks:
   #     - application
 
-  frontend:
-    build:
-      context: ./frontend
-    container_name: frontend
-    ports:
-      - "3001:3001"
-    depends_on:
-      - backend1
-      - backend2
-    networks:
-      - application
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #   container_name: frontend
+  #   ports:
+  #     - "3001:3001"
+  #   depends_on:
+  #     - backend1
+  #     - backend2
+  #   networks:
+  #     - application
 
   nginx:
     image: nginx:1.27
