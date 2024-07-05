@@ -26,44 +26,13 @@ services:
     networks:
       - application
 
-  # backend1: &backend
-  #   build:
-  #     context: ./backend
-  #   container_name: backend1
-  #   restart: unless-stopped
-  #   ports:
-  #     - "4240:4242"
-  #   environment:
-  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   depends_on:
-  #     - rabbitmq
-  #     - db
-  #   networks:
-  #     - application
-
-  # backend2:
-  #   <<: *backend
-  #   container_name: backend2
-  #   restart: unless-stopped
-  #   ports:
-  #     - "4241:4242"
-  #   environment:
-  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   depends_on:
-  #     - rabbitmq
-  #     - db
-  #   networks:
-  #     - application
-
-  backendgo1: &backendgo
+  backend1: &backend
     build:
-      context: ./api
-    container_name: backendgo1
+      context: ./backend
+    container_name: backend1
     restart: unless-stopped
     ports:
-      - "4243:4242"
+      - "4240:4242"
     environment:
       - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
@@ -73,12 +42,12 @@ services:
     networks:
       - application
 
-  backendgo2:
-    <<: *backendgo
-    container_name: backendgo2
+  backend2:
+    <<: *backend
+    container_name: backend2
     restart: unless-stopped
     ports:
-      - "4244:4242"
+      - "4241:4242"
     environment:
       - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
@@ -87,6 +56,37 @@ services:
       - db
     networks:
       - application
+
+  # backendgo1: &backendgo
+  #   build:
+  #     context: ./api
+  #   container_name: backendgo1
+  #   restart: unless-stopped
+  #   ports:
+  #     - "4243:4242"
+  #   environment:
+  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #   depends_on:
+  #     - rabbitmq
+  #     - db
+  #   networks:
+  #     - application
+
+  # backendgo2:
+  #   <<: *backendgo
+  #   container_name: backendgo2
+  #   restart: unless-stopped
+  #   ports:
+  #     - "4244:4242"
+  #   environment:
+  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
+  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+  #   depends_on:
+  #     - rabbitmq
+  #     - db
+  #   networks:
+  #     - application
 
   frontend:
     build:

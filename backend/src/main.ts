@@ -42,7 +42,14 @@ const PORT = 4242
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.post('/', async (req, res) => {
+export let channel: amqp.Channel
+
+const setup = async () => {
+  channel = await rabbitmq({ queueName: 'location_queue' })
+  locationWorker(channel)
+}
+
+app.post('/location', async (req, res) => {
   try {
     const message = req.body
 
@@ -61,18 +68,6 @@ app.post('/', async (req, res) => {
     console.error('Erro ao enviar mensagem para o RabbitMQ:', error)
     res.status(500).json({ error: 'Erro ao enviar dados para a fila' })
   }
-})
-
-export let channel: amqp.Channel
-
-const setup = async () => {
-  channel = await rabbitmq({ queueName: 'location_queue' })
-  locationWorker(channel)
-}
-
-app.listen(PORT, async () => {
-  await setup()
-  console.log(`Server is running on port ${PORT}`)
 })
 
 const processBatch = async (messages: TLocation[]) => {
@@ -108,30 +103,23 @@ const processBatch = async (messages: TLocation[]) => {
 }
 
 const locationWorker = async (channel: amqp.Channel) => {
+  console.log('Worker started')
   const QUEUE_NAME = 'location_queue'
-  const BATCH_SIZE = 100
+  const BATCH_SIZE = 3
   let messagesBuffer: TLocation[] = []
   let messageObjects: amqp.Message[] = []
-
+  console.log('messageObjects', messageObjects)
   channel.consume(
     QUEUE_NAME,
-    (msg) => {
+    async (msg) => {
       if (msg !== null) {
         const message = JSON.parse(msg.content.toString())
         messagesBuffer.push(message)
         messageObjects.push(msg)
+        console.log('Received message', messagesBuffer)
 
         if (messagesBuffer.length >= BATCH_SIZE) {
-          try {
-            processBatch(messagesBuffer)
-            messageObjects.forEach((msgObj) => channel.ack(msgObj))
-          } catch (error) {
-            console.error('Error processing batch:', error)
-            messageObjects.forEach((msgObj) => channel.nack(msgObj))
-          } finally {
-            messagesBuffer = []
-            messageObjects = []
-          }
+          await processMessages()
         }
       }
     },
@@ -140,17 +128,35 @@ const locationWorker = async (channel: amqp.Channel) => {
     }
   )
 
-  process.on('SIGTERM', async () => {
+  const processMessages = async () => {
     if (messagesBuffer.length > 0) {
-      await processBatch(messagesBuffer)
+      try {
+        console.log('Processing batch of messages:', messagesBuffer)
+        await processBatch(messagesBuffer)
+        messageObjects.forEach((msgObj) => {
+          channel.ack(msgObj)
+          console.log('Acknowledged message', msgObj.content.toString())
+        })
+      } catch (error) {
+        console.error('Error processing batch:', error)
+        messageObjects.forEach((msgObj) => {
+          channel.nack(msgObj)
+          console.log('Not acknowledged message', msgObj.content.toString())
+        })
+      } finally {
+        messagesBuffer = []
+        messageObjects = []
+      }
     }
+  }
+
+  process.on('SIGTERM', async () => {
+    await processMessages()
     process.exit(0)
   })
 
   process.on('SIGINT', async () => {
-    if (messagesBuffer.length > 0) {
-      await processBatch(messagesBuffer)
-    }
+    await processMessages()
     process.exit(0)
   })
 }
@@ -166,3 +172,8 @@ async function rabbitmq({ queueName }: { queueName: string }) {
     process.exit(1)
   }
 }
+
+app.listen(PORT, async () => {
+  await setup()
+  console.log(`Server is running on port ${PORT}`)
+})
