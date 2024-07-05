@@ -1,31 +1,32 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq" // Importação anônima do driver do PostgreSQL
 	"github.com/streadway/amqp"
 )
 
 type TLocation struct {
-    Latitude         float64 `json:"latitude"`
-    Longitude        float64 `json:"longitude"`
-    Velocidade       float64 `json:"velocidade"`
-    HorarioRastreador string `json:"horario_rastreador"`
-    Bateria          float64 `json:"bateria"`
-    BateriaVeiculo   float64 `json:"bateria_veiculo"`
-    Ignicao          bool    `json:"ignicao"`
-    Altitude         float64 `json:"altitude"`
-    Direcao          float64 `json:"direcao"`
-    Odometro         float64 `json:"odometro"`
+	Latitude         json.Number `json:"latitude"`
+	Longitude        json.Number `json:"longitude"`
+	Velocidade       json.Number `json:"velocidade"`
+	HorarioRastreador string      `json:"horario_rastreador"`
+	Bateria          json.Number `json:"bateria"`
+	BateriaVeiculo   json.Number `json:"bateria_veiculo"`
+	Ignicao          bool        `json:"ignicao"`
+	Altitude         json.Number `json:"altitude"`
+	Direcao          int         `json:"direcao"`
+	Odometro         json.Number `json:"odometro"`
 }
 
 var db *sql.DB
@@ -33,170 +34,208 @@ var channel *amqp.Channel
 var messagesBuffer []TLocation
 var messageObjects []*amqp.Delivery
 
-func failOnError(err error, msg string) {
-    if err != nil {
-        log.Fatalf("%s: %s", msg, err)
-    }
-}
-
-func setupPostgres() {
-    var err error
-    db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-    failOnError(err, "Failed to connect to PostgreSQL")
-}
-
-func setupRabbitMQ() {
-    conn, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
-    failOnError(err, "Failed to connect to RabbitMQ")
-
-    channel, err = conn.Channel()
-    failOnError(err, "Failed to open a channel")
-
-    _, err = channel.QueueDeclare(
-        "location_queue",
-        true,
-        false,
-        false,
-        false,
-        nil,
-    )
-    failOnError(err, "Failed to declare a queue")
-}
-
-func processBatch(messages []TLocation) {
-    if len(messages) == 0 {
-        return
-    }
-
-    tx, err := db.Begin()
-    if err != nil {
-        log.Fatalf("Failed to begin transaction: %s", err)
-    }
-
-    stmt, err := tx.Prepare(pq.CopyIn("localizacao", "latitude", "longitude", "velocidade", "horario_rastreador", "bateria", "bateria_veiculo", "ignicao", "altitude", "direcao", "odometro"))
-    if err != nil {
-        log.Fatalf("Failed to prepare statement: %s", err)
-    }
-
-    for _, msg := range messages {
-        _, err = stmt.Exec(msg.Latitude, msg.Longitude, msg.Velocidade, msg.HorarioRastreador, msg.Bateria, msg.BateriaVeiculo, msg.Ignicao, msg.Altitude, msg.Direcao, msg.Odometro)
-        if err != nil {
-            log.Fatalf("Failed to execute statement: %s", err)
-        }
-    }
-
-    _, err = stmt.Exec()
-    if err != nil {
-        log.Fatalf("Failed to execute statement: %s", err)
-    }
-
-    err = stmt.Close()
-    if err != nil {
-        log.Fatalf("Failed to close statement: %s", err)
-    }
-
-    err = tx.Commit()
-    if err != nil {
-        log.Fatalf("Failed to commit transaction: %s", err)
-    }
-}
-
-func consumeMessages() {
-    queueName := "location_queue"
-    batchSize := 100
-    messagesBuffer = []TLocation{}
-    messageObjects = []*amqp.Delivery{}
-
-    msgs, err := channel.Consume(
-        queueName,
-        "",
-        false,
-        false,
-        false,
-        false,
-        nil,
-    )
-    failOnError(err, "Failed to register a consumer")
-
-    go func() {
-        for msg := range msgs {
-            var message TLocation
-            err := json.Unmarshal(msg.Body, &message)
-            if err != nil {
-                log.Printf("Failed to unmarshal message: %s", err)
-                continue
-            }
-
-            messagesBuffer = append(messagesBuffer, message)
-            messageObjects = append(messageObjects, &msg)
-
-            if len(messagesBuffer) >= batchSize {
-                processBatch(messagesBuffer)
-                for _, msgObj := range messageObjects {
-                    msgObj.Ack(false)
-                }
-                messagesBuffer = []TLocation{}
-                messageObjects = []*amqp.Delivery{}
-            }
-        }
-    }()
-}
-
-func setup() {
-    setupPostgres()
-    setupRabbitMQ()
-    consumeMessages()
-
-    c := make(chan os.Signal, 1)
-    signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-    go func() {
-        <-c
-        if len(messagesBuffer) > 0 {
-            processBatch(messagesBuffer)
-        }
-        os.Exit(0)
-    }()
-}
+const batchSize = 3
 
 func main() {
-    err := godotenv.Load()
-    failOnError(err, "Error loading .env file")
+	// Carregar variáveis de ambiente do arquivo .env
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 
-    app := fiber.New()
+	databaseURL := os.Getenv("DATABASE_URL") + "?sslmode=disable"
+	rabbitmqURL := os.Getenv("RABBITMQ_URL")
 
-		app.Post("/location", func(c *fiber.Ctx) error {
-        var message TLocation
-        if err := c.BodyParser(&message); err != nil {
-            return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-        }
-				fmt.Println("Received location data:", message)
-        body, err := json.Marshal(message)
-        if err != nil {
-            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-        }
+	// Setup database connection
+	db, err = sql.Open("postgres", databaseURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
 
+	// Setup RabbitMQ connection
+	conn, err := amqp.Dial(rabbitmqURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+	defer conn.Close()
 
+	channel, err = conn.Channel()
+	if err != nil {
+		log.Fatalf("Failed to open a channel: %v", err)
+	}
+	defer channel.Close()
 
-        err = channel.Publish(
-            "",
-            "location_queue",
-            false,
-            false,
-            amqp.Publishing{
-                ContentType: "application/json",
-                Body:        body,
-            },
-        )
-        if err != nil {
-            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-        }
+	queueName := "location_queue"
+	_, err = channel.QueueDeclare(
+		queueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to declare a queue: %v", err)
+	}
 
-        return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "Location data sent to queue"})
-    })
+	// Setup HTTP server
+	http.HandleFunc("/location", locationHandler)
+	server := &http.Server{Addr: ":4242"}
 
-    setup()
+	// Handle shutdown signals
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-    port := 4242
-    log.Printf("Server is running on port %d", port)
-    log.Fatal(app.Listen(fmt.Sprintf(":%d", port)))
+	go func() {
+		<-sigs
+		log.Println("Shutting down server...")
+		server.Shutdown(context.Background())
+	}()
+
+	go locationWorker(queueName)
+
+	log.Println("Server is running on port 4242")
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("ListenAndServe(): %v", err)
+	}
+}
+
+func locationHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var message TLocation
+	err := json.NewDecoder(r.Body).Decode(&message)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	body, err := json.Marshal(message)
+	if err != nil {
+		http.Error(w, "Failed to marshal message", http.StatusInternalServerError)
+		return
+	}
+
+	err = channel.Publish(
+		"",
+		"location_queue",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:  "application/json",
+			Body:         body,
+			DeliveryMode: amqp.Persistent,
+		},
+	)
+	if err != nil {
+		http.Error(w, "Failed to publish message", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintln(w, `{"message": "Message published"}`)
+}
+
+func locationWorker(queueName string) {
+	msgs, err := channel.Consume(
+		queueName,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to register a consumer: %v", err)
+	}
+
+	log.Printf("Consuming messages from queue %s", queueName)
+
+	for msg := range msgs {
+		var message TLocation
+		err := json.Unmarshal(msg.Body, &message)
+		if err != nil {
+			log.Printf("Error unmarshalling message: %v", err)
+			msg.Nack(false, true)
+			continue
+		}
+
+		messagesBuffer = append(messagesBuffer, message)
+		messageObjects = append(messageObjects, &msg)
+
+		if len(messagesBuffer) >= batchSize {
+			processMessages()
+		}
+	}
+}
+
+func processMessages() {
+	if len(messagesBuffer) == 0 {
+		return
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Printf("Error starting transaction: %v", err)
+		nackMessages()
+		return
+	}
+
+	stmt, err := tx.Prepare(`
+		INSERT INTO localizacao (
+			latitude, longitude, velocidade, horario_rastreador,
+			bateria, bateria_veiculo, ignicao, altitude, direcao, odometro
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`)
+	if err != nil {
+		log.Printf("Error preparing statement: %v", err)
+		tx.Rollback()
+		nackMessages()
+		return
+	}
+	defer stmt.Close()
+
+	for _, message := range messagesBuffer {
+		_, err := stmt.Exec(
+			message.Latitude, message.Longitude, message.Velocidade, message.HorarioRastreador,
+			message.Bateria, message.BateriaVeiculo, message.Ignicao, message.Altitude,
+			message.Direcao, message.Odometro,
+		)
+		if err != nil {
+			log.Printf("Error executing statement: %v", err)
+			tx.Rollback()
+			nackMessages()
+			return
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Error committing transaction: %v", err)
+		nackMessages()
+		return
+	}
+
+	ackMessages()
+}
+
+func ackMessages() {
+	for _, msg := range messageObjects {
+		msg.Ack(false)
+	}
+	messagesBuffer = nil
+	messageObjects = nil
+}
+
+func nackMessages() {
+	for _, msg := range messageObjects {
+		msg.Nack(false, true)
+	}
+	messagesBuffer = nil
+	messageObjects = nil
 }
