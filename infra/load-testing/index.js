@@ -3,6 +3,8 @@ import { sleep, check } from "k6";
 import { Rate, Counter } from "k6/metrics";
 import exec from "k6/execution";
 
+//pesquisar scenarios
+
 export let options = {
   stages: [
     { duration: "1m", target: 2000 },
@@ -21,6 +23,7 @@ export let options = {
 const successTimeRate = new Rate("success_time_rate");
 const successRate = new Rate("success_rate");
 // const vuCounter = new Counter("vu_counter");
+const requestCounter = new Counter("total_requests");
 
 function getRandomFloat(min, max) {
   return (Math.random() * (max - min) + min).toFixed(2);
@@ -30,37 +33,49 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+l;
+const MAX_REQUESTS = 100000;
+
 export default function () {
-  let payload = {
-    latitude: getRandomFloat(-90, 90),
-    longitude: getRandomFloat(-180, 180),
-    velocidade: getRandomFloat(0, 200),
-    horario_rastreador: new Date().toISOString(),
-    bateria: getRandomFloat(0, 100),
-    bateria_veiculo: getRandomFloat(0, 15),
-    ignicao: Math.random() < 0.5,
-    altitude: getRandomFloat(0, 8848),
-    direcao: getRandomInt(0, 360),
-    odometro: getRandomFloat(0, 999999.9),
-  };
+  if (requestCounter.value < MAX_REQUESTS) {
+    console.log(requestCounter.value);
+    let payload = {
+      latitude: getRandomFloat(-90, 90),
+      longitude: getRandomFloat(-180, 180),
+      velocidade: getRandomFloat(0, 200),
+      horario_rastreador: new Date().toISOString(),
+      bateria: getRandomFloat(0, 100),
+      bateria_veiculo: getRandomFloat(0, 15),
+      ignicao: Math.random() < 0.5,
+      altitude: getRandomFloat(0, 8848),
+      direcao: getRandomInt(0, 360),
+      odometro: getRandomFloat(0, 999999.9),
+    };
 
-  let res = http.post("http://localhost:80/location", JSON.stringify(payload), {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+    let res = http.post(
+      "http://localhost:80/location",
+      JSON.stringify(payload),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-  const resultTime = check(res, {
-    "response time is below 500ms": (r) => r.timings.duration < 500,
-  });
+    const resultTime = check(res, {
+      "response time is below 500ms": (r) => r.timings.duration < 500,
+    });
 
-  const resultRate = check(res, {
-    "status is 201": (r) => r.status === 201,
-  });
-
-  successRate.add(resultRate);
-  successTimeRate.add(resultTime);
-
+    const resultRate = check(res, {
+      "status is 201": (r) => r.status === 201,
+    });
+    requestCounter.add(1);
+    successRate.add(resultRate);
+    successTimeRate.add(resultTime);
+  } else {
+    console.log("request count:", requestCounter.value);
+    return;
+  }
   // if (!resultRate || res.timings.duration > 1000) {
   //   console.log(
   //     `First error or slow response recorded with VUs: ${exec.instance.vusActive}`
