@@ -76,25 +76,22 @@ services:
   ##############################################
 
   cassandra:
-    image: cassandra:4.1
+    image: cassandra:4
     container_name: cassandra
+    restart: unless-stopped
     ports:
       - "9042:9042"
     environment:
-      MAX_HEAP_SIZE: 4G
-      HEAP_NEWSIZE: 800M
-      CASSANDRA_CLUSTER_NAME: "Test Cluster"
-      CASSANDRA_DC: "DC1"
-      CASSANDRA_RACK: "RAC1"
-      CASSANDRA_SEEDS: "cassandra"
-      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      - CASSANDRA_CLUSTER_NAME=TestCluster
+      - CASSANDRA_USER=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
     volumes:
-      - ./infra/db/cassandra/init.cql:/docker-entrypoint-initdb.d/init.cql
-    healthcheck:
-      test: ["CMD-SHELL", "nodetool status"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
+      - ./infra/db/cassandra/data.cql:/data.cql
+      - ./infra/db/cassandra/init.sh:/init.sh
+    command: /init.sh
     networks:
       - application
 
@@ -199,18 +196,18 @@ services:
     networks:
       - monitoring
 
-  postgres_exporter:
-    image: prometheuscommunity/postgres-exporter
-    container_name: postgres_exporter
-    environment:
-      - DATA_SOURCE_NAME=postgresql://iago:iago@postgres:5432/Projeto?sslmode=disable
-    ports:
-      - "9187:9187"
-    networks:
-      - monitoring
-      - application
-    depends_on:
-      - postgres
+  # postgres_exporter:
+  #   image: prometheuscommunity/postgres-exporter
+  #   container_name: postgres_exporter
+  #   environment:
+  #     - DATA_SOURCE_NAME=postgresql://iago:iago@postgres:5432/Projeto?sslmode=disable
+  #   ports:
+  #     - "9187:9187"
+  #   networks:
+  #     - monitoring
+  #     - application
+  #   depends_on:
+  #     - postgres
 
   prometheus:
     image: prom/prometheus
@@ -221,8 +218,8 @@ services:
       - "9090:9090"
     networks:
       - monitoring
-    depends_on:
-      - postgres_exporter
+    # depends_on:
+    #   - postgres_exporter
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
