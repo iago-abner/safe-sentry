@@ -4,9 +4,9 @@ import (
 	"api/handlers"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/streadway/amqp"
 )
 
-func SetupRoutes(app *fiber.App) {
-    app.Get("/api/v1/hello", handlers.Hello)
-		app.Get("/", handlers.Home)
+func LocationRoutes(app *fiber.App, channel *amqp.Channel) {
+		app.Post("/location", handlers.LocationHandler(channel))
 }
