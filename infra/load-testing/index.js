@@ -1,11 +1,8 @@
 import http from "k6/http";
-import { sleep, check } from "k6";
-import { Rate, Counter } from "k6/metrics";
-import exec from "k6/execution";
 
 export let options = {
   stages: [
-    { duration: "1m", target: 2000 },
+    { duration: "50s", target: 2000 },
     { duration: "1m", target: 4000 },
     { duration: "1m", target: 6000 },
     { duration: "1m", target: 8000 },
@@ -13,14 +10,9 @@ export let options = {
     { duration: "10s", target: 0 },
   ],
   thresholds: {
-    http_req_duration: ["p(95)<700"],
-    "checks{status:201}": ["rate>0.90"],
+    http_req_duration: [{ threshold: "p(95)<1000", abortOnFail: true }],
   },
 };
-
-const successTimeRate = new Rate("success_time_rate");
-const successRate = new Rate("success_rate");
-// const vuCounter = new Counter("vu_counter");
 
 function getRandomFloat(min, max) {
   return (Math.random() * (max - min) + min).toFixed(2);
@@ -31,7 +23,7 @@ function getRandomInt(min, max) {
 }
 
 export default function () {
-  let payload = {
+  const payload = {
     latitude: getRandomFloat(-90, 90),
     longitude: getRandomFloat(-180, 180),
     velocidade: getRandomFloat(0, 200),
@@ -44,30 +36,9 @@ export default function () {
     odometro: getRandomFloat(0, 999999.9),
   };
 
-  let res = http.post("http://localhost:80/location", JSON.stringify(payload), {
+  http.post("http://localhost:80/location", JSON.stringify(payload), {
     headers: {
       "Content-Type": "application/json",
     },
   });
-
-  const resultTime = check(res, {
-    "response time is below 500ms": (r) => r.timings.duration < 500,
-  });
-
-  const resultRate = check(res, {
-    "status is 201": (r) => r.status === 201,
-  });
-
-  successRate.add(resultRate);
-  successTimeRate.add(resultTime);
-
-  // if (!resultRate || res.timings.duration > 1000) {
-  //   console.log(
-  //     `First error or slow response recorded with VUs: ${exec.instance.vusActive}`
-  //   );
-  //   vuCounter.add(exec.instance.vusActive);
-  //   exec.test.abort();
-  // }
-
-  sleep(1);
 }

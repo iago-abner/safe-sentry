@@ -26,18 +26,16 @@ services:
     networks:
       - application
 
-  servernode1: &backend
+  servernode1: &server
     build:
-      context: ./backend
+      context: ./server
     container_name: servernode1
     restart: unless-stopped
     ports:
       - "4240:4242"
     environment:
       - DATABASE_URL=postgresql://iago:iago@postgres:5432/Projeto
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - rabbitmq
       - postgres
     deploy:
       resources:
@@ -51,16 +49,14 @@ services:
       - application
 
   servernode2:
-    <<: *backend
-    container_name: backend2
+    <<: *server
+    container_name: servernode2
     restart: unless-stopped
     ports:
       - "4241:4242"
     environment:
       - DATABASE_URL=postgresql://iago:iago@postgres:5432/Projeto
-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
-      - rabbitmq
       - postgres
     deploy:
       resources:
@@ -86,21 +82,6 @@ services:
       - servernode2
     networks:
       - application
-
-  rabbitmq:
-    image: rabbitmq:3.13.3-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
-    volumes:
-      - ./infra/rabbitmq-data:/var/lib/rabbitmq
-    networks:
-      - application
-      - monitoring
 
   influxdb:
     image: influxdb:1.8
