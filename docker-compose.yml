@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres:
     image: postgres:15
     container_name: postgres
     environment:
@@ -17,88 +17,61 @@ services:
       retries: 3
     deploy:
       resources:
-        # limits:
-        #   cpus: "0.75"
-        #   memory: 1GB
+        limits:
+          cpus: "1"
+          memory: 2GB
         reservations:
           cpus: "0.5"
           memory: 256M
     networks:
       - application
 
-  backend1: &backend
+  servernode1: &backend
     build:
       context: ./backend
-    container_name: backend1
+    container_name: servernode1
     restart: unless-stopped
     ports:
       - "4240:4242"
     environment:
-      - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
+      - DATABASE_URL=postgresql://iago:iago@postgres:5432/Projeto
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       - rabbitmq
-      - db
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     networks:
       - application
 
-  backend2:
+  servernode2:
     <<: *backend
     container_name: backend2
     restart: unless-stopped
     ports:
       - "4241:4242"
     environment:
-      - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
+      - DATABASE_URL=postgresql://iago:iago@postgres:5432/Projeto
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       - rabbitmq
-      - db
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     networks:
       - application
-
-  # backendgo1: &backendgo
-  #   build:
-  #     context: ./api
-  #   container_name: backendgo1
-  #   restart: unless-stopped
-  #   ports:
-  #     - "4243:4242"
-  #   environment:
-  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   depends_on:
-  #     - rabbitmq
-  #     - db
-  #   networks:
-  #     - application
-
-  # backendgo2:
-  #   <<: *backendgo
-  #   container_name: backendgo2
-  #   restart: unless-stopped
-  #   ports:
-  #     - "4244:4242"
-  #   environment:
-  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   depends_on:
-  #     - rabbitmq
-  #     - db
-  #   networks:
-  #     - application
-
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #   container_name: frontend
-  #   ports:
-  #     - "3001:3001"
-  #   depends_on:
-  #     - backend1
-  #     - backend2
-  #   networks:
-  #     - application
 
   nginx:
     image: nginx:1.27
@@ -109,16 +82,10 @@ services:
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      - backend1
-      - backend2
+      - servernode1
+      - servernode2
     networks:
       - application
-
-  # redis:
-  #   image: redis:7.2.5
-  #   container_name: redis
-  #   ports:
-  #     - "6379:6379"
 
   rabbitmq:
     image: rabbitmq:3.13.3-management
@@ -146,9 +113,6 @@ services:
       INFLUXDB_ADMIN_PASSWORD: admin
     deploy:
       resources:
-        # limits:
-        #   cpus: "0.75"
-        #   memory: 1GB
         reservations:
           cpus: "0.5"
           memory: 256M
@@ -176,14 +140,14 @@ services:
     image: prometheuscommunity/postgres-exporter
     container_name: postgres_exporter
     environment:
-      - DATA_SOURCE_NAME=postgresql://iago:iago@db:5432/Projeto?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://iago:iago@postgres:5432/Projeto?sslmode=disable
     ports:
       - "9187:9187"
     networks:
       - monitoring
       - application
     depends_on:
-      - db
+      - postgres
 
   prometheus:
     image: prom/prometheus
