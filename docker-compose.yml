@@ -52,7 +52,7 @@ services:
 
   servernode2:
     <<: *backend
-    container_name: backend2
+    container_name: servernode2
     restart: unless-stopped
     ports:
       - "4241:4242"
