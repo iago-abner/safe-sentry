@@ -2,12 +2,12 @@ import http from "k6/http";
 
 export let options = {
   stages: [
-    { duration: "50s", target: 1 },
-    // { duration: "1m", target: 4000 },
-    // { duration: "1m", target: 6000 },
-    // { duration: "1m", target: 8000 },
-    // { duration: "1m", target: 10000 },
-    // { duration: "10s", target: 0 },
+    { duration: "50s", target: 2000 },
+    { duration: "1m", target: 4000 },
+    { duration: "1m", target: 6000 },
+    { duration: "1m", target: 8000 },
+    { duration: "1m", target: 10000 },
+    { duration: "10s", target: 0 },
   ],
   thresholds: {
     http_req_duration: [{ threshold: "p(95)<1000", abortOnFail: true }],
@@ -39,8 +39,6 @@ export default function () {
     odometro: getRandomFloat(0, 999999, 2),
     criado_em: new Date().toISOString(),
   };
-
-  console.log(payload);
 
   http.post("http://localhost:80/location", JSON.stringify(payload), {
     headers: {

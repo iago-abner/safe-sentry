@@ -19,7 +19,7 @@ var channel *amqp.Channel
 var messagesBuffer []models.TLocation
 var messageObjects []*amqp.Delivery
 
-const batchSize = 5
+const batchSize = 100
 
 func main() {
 	err := godotenv.Load()
@@ -133,7 +133,7 @@ func locationWorker(queueName string, session *gocql.Session) {
 		log.Fatalf("Failed to register a consumer: %v", err)
 	}
 
-	log.Println("Worker started, waiting for messages...")
+
 
 	for msg := range msgs {
 		log.Printf("Received a message")
@@ -146,12 +146,12 @@ func locationWorker(queueName string, session *gocql.Session) {
 			continue
 		}
 
-		// log.Printf("Message unmarshalled successfully: %+v", message.RastreadorId)
+
 
 		messagesBuffer = append(messagesBuffer, message)
 		messageObjects = append(messageObjects, &msg)
 
-		// log.Printf("Current buffer length: %d", len(messagesBuffer))
+
 		if len(messagesBuffer) >= batchSize {
 			processMessages(session)
 		}
@@ -164,12 +164,10 @@ func processMessages(session *gocql.Session) {
 	if len(messagesBuffer) == 0 {
 		return
 	}
-	log.Printf("Processing %d messages", len(messagesBuffer))
+
 
 	batch := session.NewBatch(gocql.UnloggedBatch)
-	for i, message := range messagesBuffer {
-		log.Printf("Inserting message %d: %+v", i, message)
-
+	for _, message := range messagesBuffer {
 		batch.Query(`
 			INSERT INTO Localizacao (rastreador_id, data, horario_rastreador, latitude, longitude, velocidade, bateria, bateria_veiculo, ignicao, altitude, direcao, odometro, criado_em)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

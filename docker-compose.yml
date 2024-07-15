@@ -16,6 +16,14 @@ services:
       - ./infra/db/cassandra/data.cql:/data.cql
       - ./infra/db/cassandra/init.sh:/init.sh
     command: /init.sh
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
     networks:
       - application
 
@@ -35,6 +43,14 @@ services:
     depends_on:
       - rabbitmq
       - cassandra
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     networks:
       - application
 
@@ -53,6 +69,14 @@ services:
     depends_on:
       - rabbitmq
       - cassandra
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
     networks:
       - application
 
@@ -96,9 +120,12 @@ services:
       INFLUXDB_ADMIN_PASSWORD: admin
     deploy:
       resources:
+        limits:
+          cpus: "1"
+          memory: 4G
         reservations:
           cpus: "0.5"
-          memory: 256M
+          memory: 2G
     networks:
       - monitoring
 
