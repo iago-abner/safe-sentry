@@ -7,9 +7,9 @@ services:
       - "9042:9042"
     environment:
       # - CASSANDRA_CLUSTER_NAME=TestCluster
+      # - CASSANDRA_DC=datacenter1
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=cassandra
-      # - CASSANDRA_DC=datacenter1
       - CASSANDRA_RACK=location
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
     volumes:
@@ -27,8 +27,10 @@ services:
     ports:
       - "4243:4242"
     environment:
-      - CASSANDRA_URL=127.0.0.1:9042
+      - CASSANDRA_URL=cassandra:9042
       - CASSANDRA_KEYSPACE=projeto
+      - CASSANDRA_USER=cassandra
+      - CASSANDRA_PASSWORD=cassandra
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       - rabbitmq
@@ -43,8 +45,10 @@ services:
     ports:
       - "4244:4242"
     environment:
-      - CASSANDRA_URL=127.0.0.1:9042
+      - CASSANDRA_URL=cassandra:9042
       - CASSANDRA_KEYSPACE=projeto
+      - CASSANDRA_USER=cassandra
+      - CASSANDRA_PASSWORD=cassandra
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       - rabbitmq

@@ -4,11 +4,11 @@ import (
 	"api/models"
 	"encoding/json"
 	"log"
-	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/streadway/amqp"
 )
+
 
 var messagesBuffer []models.TLocation
 var messageObjects []*amqp.Delivery
@@ -18,6 +18,7 @@ const batchSize = 100
 func ConnectQueue(rabbitmqURL string) (*amqp.Channel, error) {
 	conn, err := amqp.Dial(rabbitmqURL)
 	if err != nil {
+		log.Printf("Error connection: %v", err)
 		return nil, err
 	}
 
@@ -37,6 +38,7 @@ func ConnectQueue(rabbitmqURL string) (*amqp.Channel, error) {
 		nil,
 	)
 	if err != nil {
+		log.Printf("Error close connection: %v", err)
 		channel.Close()
 		conn.Close()
 		return nil, err
@@ -46,6 +48,7 @@ func ConnectQueue(rabbitmqURL string) (*amqp.Channel, error) {
 }
 
 func LocationWorker(channel *amqp.Channel, queueName string, session *gocql.Session) {
+
 	msgs, err := channel.Consume(
 		queueName,
 		"",
@@ -55,6 +58,7 @@ func LocationWorker(channel *amqp.Channel, queueName string, session *gocql.Sess
 		false,
 		nil,
 	)
+
 	if err != nil {
 		log.Fatalf("Failed to register a consumer: %v", err)
 	}
@@ -67,11 +71,12 @@ func LocationWorker(channel *amqp.Channel, queueName string, session *gocql.Sess
 			msg.Nack(false, true)
 			continue
 		}
-
+		log.Printf("adicionou mensagem buffer")
 		messagesBuffer = append(messagesBuffer, message)
 		messageObjects = append(messageObjects, &msg)
 
 		if len(messagesBuffer) >= batchSize {
+			log.Printf("Entrou batch")
 			processMessages(session)
 		}
 	}
@@ -85,12 +90,11 @@ func processMessages(session *gocql.Session) {
 	batch := session.NewBatch(gocql.UnloggedBatch)
 	for _, message := range messagesBuffer {
 		batch.Query(`
-			INSERT INTO Localizacao (rastreador_id, data, horario_rastreador, id, latitude, longitude, velocidade, bateria, bateria_veiculo, ignicao, altitude, direcao, odometro, criado_em)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			message.Rastreador_Id,
-			time.Now().Format("2006-01-02"),
+			INSERT INTO Localizacao (rastreador_id, data, horario_rastreador, latitude, longitude, velocidade, bateria, bateria_veiculo, ignicao, altitude, direcao, odometro, criado_em)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			message.RastreadorId,
+			message.Data,
 			message.HorarioRastreador,
-			gocql.TimeUUID(),
 			message.Latitude,
 			message.Longitude,
 			message.Velocidade,
@@ -100,15 +104,17 @@ func processMessages(session *gocql.Session) {
 			message.Altitude,
 			message.Direcao,
 			message.Odometro,
-			time.Now())
+			message.CriadoEm)
 	}
 
+
+	log.Printf("executing batch")
 	if err := session.ExecuteBatch(batch); err != nil {
 		log.Printf("Error executing batch: %v", err)
 		nackMessages()
 		return
 	}
-
+	log.Printf("aceite batch")
 	ackMessages()
 }
 

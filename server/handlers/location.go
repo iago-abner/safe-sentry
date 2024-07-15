@@ -8,11 +8,8 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func LocationHandler(channel *amqp.Channel) fiber.Handler {
+func LocationHandlerxx(channel *amqp.Channel) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		if c.Method() != fiber.MethodPost {
-			return c.Status(fiber.StatusMethodNotAllowed).JSON(fiber.Map{"error": "Invalid request method"})
-		}
 
 		var message models.TLocation
 		err := json.Unmarshal(c.Body(), &message)

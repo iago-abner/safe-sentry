@@ -15,7 +15,8 @@ export let options = {
 };
 
 function getRandomFloat(min, max) {
-  return (Math.random() * (max - min) + min).toFixed(2);
+  const res = (Math.random() * (max - min) + min).toFixed(2);
+  return res;
 }
 
 function getRandomInt(min, max) {
@@ -24,16 +25,19 @@ function getRandomInt(min, max) {
 
 export default function () {
   const payload = {
+    rastreador_id: getRandomInt(1, 10000),
+    data: new Date().toISOString().split("T")[0],
+    horario_rastreador: new Date().toISOString(),
     latitude: getRandomFloat(-90, 90),
     longitude: getRandomFloat(-180, 180),
     velocidade: getRandomFloat(0, 200),
-    horario_rastreador: new Date().toISOString(),
-    bateria: getRandomFloat(0, 100),
+    bateria: getRandomFloat(0, 24),
     bateria_veiculo: getRandomFloat(0, 15),
     ignicao: Math.random() < 0.5,
     altitude: getRandomFloat(0, 8848),
     direcao: getRandomInt(0, 360),
     odometro: getRandomFloat(0, 999999.9),
+    criado_em: new Date().toISOString(),
   };
 
   http.post("http://localhost:80/location", JSON.stringify(payload), {

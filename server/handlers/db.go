@@ -4,10 +4,13 @@ import (
 	"github.com/gocql/gocql"
 )
 
-// ConnectDB establishes a connection to Cassandra
-func ConnectDB(host, keyspace string) (*gocql.Session, error) {
+func ConnectDB(host, keyspace, username, password string) (*gocql.Session, error) {
 	cluster := gocql.NewCluster(host)
 	cluster.Keyspace = keyspace
 	cluster.Consistency = gocql.Quorum
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: username,
+		Password: password,
+	}
 	return cluster.CreateSession()
 }

@@ -1,19 +1,20 @@
 package models
 
-import (
-	"encoding/json"
-)
+import "time"
 
 type TLocation struct {
-	Rastreador_Id 	 string      `json:"rastreador_id"`
-	Latitude         json.Number `json:"latitude"`
-	Longitude        json.Number `json:"longitude"`
-	Velocidade       json.Number `json:"velocidade"`
-	HorarioRastreador string      `json:"horario_rastreador"`
-	Bateria          json.Number `json:"bateria"`
-	BateriaVeiculo   json.Number `json:"bateria_veiculo"`
-	Ignicao          bool        `json:"ignicao"`
-	Altitude         json.Number `json:"altitude"`
-	Direcao          int         `json:"direcao"`
-	Odometro         json.Number `json:"odometro"`
+	RastreadorId      int         `json:"rastreador_id"`
+	Data 							string      `json:"data"`
+	HorarioRastreador time.Time   `json:"horario_rastreador"`
+	Latitude          float32 		`json:"latitude"`
+	Longitude         float32 		`json:"longitude"`
+	Velocidade        float32 		`json:"velocidade"`
+	Bateria           float32 		`json:"bateria"`
+	BateriaVeiculo    float32 		`json:"bateria_veiculo"`
+	Ignicao           bool        `json:"ignicao"`
+	Altitude          float32 		`json:"altitude"`
+	Direcao           int         `json:"direcao"`
+	Odometro          float32 		`json:"odometro"`
+	CriadoEm          time.Time    `json:"criado_em"`
 }
+
