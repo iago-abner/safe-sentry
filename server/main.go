@@ -87,17 +87,15 @@ func main() {
 }
 
 func locationHandler(c *fiber.Ctx) error {
-	if c.Method() != fiber.MethodPost {
-		return c.Status(fiber.StatusMethodNotAllowed).JSON(fiber.Map{"error": "Invalid request method"})
-	}
-
 	var message models.TLocation
 	if err := c.BodyParser(&message); err != nil {
+		log.Printf("Invalid request body: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
 	body, err := json.Marshal(message)
 	if err != nil {
+		log.Printf("Failed to marshal message: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to marshal message"})
 	}
 
@@ -113,6 +111,7 @@ func locationHandler(c *fiber.Ctx) error {
 		},
 	)
 	if err != nil {
+		log.Printf("Error publishing message: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to publish message"})
 	}
 
