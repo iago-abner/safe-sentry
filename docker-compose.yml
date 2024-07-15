@@ -1,80 +1,4 @@
 services:
-  # postgres:
-  #   image: postgres:15
-  #   container_name: postgres
-  #   environment:
-  #     - POSTGRES_PASSWORD=iago
-  #     - POSTGRES_USER=iago
-  #     - POSTGRES_DB=Projeto
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - ./infra/db/postgres/boot.sql:/docker-entrypoint-initdb.d/boot.sql
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U iago -d Projeto"]
-  #     interval: 30s
-  #     timeout: 30s
-  #     retries: 3
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "1"
-  #         memory: 2GB
-  #       reservations:
-  #         cpus: "0.5"
-  #         memory: 256M
-  #   networks:
-  #     - application
-
-  # servernode1: &servernode
-  #   build:
-  #     context: ./backend
-  #   container_name: servernode1
-  #   restart: unless-stopped
-  #   ports:
-  #     - "4240:4242"
-  #   environment:
-  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "1"
-  #         memory: 1GB
-  #       reservations:
-  #         cpus: "0.5"
-  #         memory: 256M
-  #   depends_on:
-  #     - rabbitmq
-  #     - db
-  #   networks:
-  #     - application
-
-  # servernode2:
-  #   <<: *servernode
-  #   container_name: servernode2
-  #   restart: unless-stopped
-  #   ports:
-  #     - "4241:4242"
-  #   environment:
-  #     - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
-  #     - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "1"
-  #         memory: 1GB
-  #       reservations:
-  #         cpus: "0.5"
-  #         memory: 256M
-  #   depends_on:
-  #     - rabbitmq
-  #     - db
-  #   networks:
-  #     - application
-
-  ##############################################
-
   cassandra:
     image: cassandra:4
     container_name: cassandra
@@ -82,11 +6,11 @@ services:
     ports:
       - "9042:9042"
     environment:
-      - CASSANDRA_CLUSTER_NAME=TestCluster
+      # - CASSANDRA_CLUSTER_NAME=TestCluster
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=cassandra
-      - CASSANDRA_DC=datacenter1
-      - CASSANDRA_RACK=rack1
+      # - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=location
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
     volumes:
       - ./infra/db/cassandra/data.cql:/data.cql
@@ -97,13 +21,13 @@ services:
 
   servergolang1: &servergo
     build:
-      context: ./api
+      context: ./server
     container_name: servergolang1
     restart: unless-stopped
     ports:
       - "4243:4242"
     environment:
-      - CASSANDRA_URL=cassandra://cassandra:9042
+      - CASSANDRA_URL=127.0.0.1:9042
       - CASSANDRA_KEYSPACE=projeto
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
@@ -119,7 +43,7 @@ services:
     ports:
       - "4244:4242"
     environment:
-      - CASSANDRA_URL=cassandra://cassandra:9042
+      - CASSANDRA_URL=127.0.0.1:9042
       - CASSANDRA_KEYSPACE=projeto
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
@@ -136,8 +60,6 @@ services:
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      # - servernode1
-      # - servernode2
       - servergolang1
       - servergolang2
     networks:
@@ -170,9 +92,6 @@ services:
       INFLUXDB_ADMIN_PASSWORD: admin
     deploy:
       resources:
-        # limits:
-        #   cpus: "0.75"
-        #   memory: 1GB
         reservations:
           cpus: "0.5"
           memory: 256M
@@ -196,19 +115,6 @@ services:
     networks:
       - monitoring
 
-  # postgres_exporter:
-  #   image: prometheuscommunity/postgres-exporter
-  #   container_name: postgres_exporter
-  #   environment:
-  #     - DATA_SOURCE_NAME=postgresql://iago:iago@postgres:5432/Projeto?sslmode=disable
-  #   ports:
-  #     - "9187:9187"
-  #   networks:
-  #     - monitoring
-  #     - application
-  #   depends_on:
-  #     - postgres
-
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -218,8 +124,6 @@ services:
       - "9090:9090"
     networks:
       - monitoring
-    # depends_on:
-    #   - postgres_exporter
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
@@ -245,21 +149,3 @@ volumes:
 networks:
   application:
   monitoring:
-
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #   container_name: frontend
-  #   ports:
-  #     - "3001:3001"
-  #   depends_on:
-  #     - servernode1
-  #     - servernode2
-  #   networks:
-  #     - application
-
-  # redis:
-  #   image: redis:7.2.5
-  #   container_name: redis
-  #   ports:
-  #     - "6379:6379"
