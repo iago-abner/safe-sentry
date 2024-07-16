@@ -5,6 +5,7 @@ export const location = Router()
 
 const batchSize = 100
 let recordsBuffer = []
+let isProcessing = false
 
 location.post('/', async (req, res) => {
   try {
@@ -34,7 +35,8 @@ location.post('/', async (req, res) => {
       odometro
     ])
 
-    if (recordsBuffer.length >= batchSize) {
+    if (recordsBuffer.length >= batchSize && !isProcessing) {
+      isProcessing = true
       const query =
         'INSERT INTO localizacao (latitude, longitude, velocidade, horario_rastreador, bateria, bateria_veiculo, ignicao, altitude, direcao, odometro) VALUES ' +
         recordsBuffer
@@ -46,8 +48,9 @@ location.post('/', async (req, res) => {
 
       const flattenedValues = recordsBuffer.flat()
 
-      await pg.query(query, flattenedValues)
+      const result = await pg.query(query, flattenedValues)
 
+      if(result) isProcessing = false
       recordsBuffer = []
 
       res.status(201).json({
