@@ -94,7 +94,7 @@ const processBatch = async (messages: TLocation[]) => {
       .join(', ')
 
   const flattenedValues = values.flat()
-
+  console.log('With values:', flattenedValues);
   try {
     await pg.query(query, flattenedValues)
   } catch (error) {
@@ -102,22 +102,29 @@ const processBatch = async (messages: TLocation[]) => {
   }
 }
 
+
 const locationWorker = async (channel: amqp.Channel) => {
   const QUEUE_NAME = 'location_queue'
   const BATCH_SIZE = 100
   let messagesBuffer: TLocation[] = []
   let messageObjects: amqp.Message[] = []
+  let isProcessing = false;
+
 
   channel.consume(
     QUEUE_NAME,
     async (msg) => {
       if (msg !== null) {
+
         const message = JSON.parse(msg.content.toString())
         messagesBuffer.push(message)
         messageObjects.push(msg)
 
-        if (messagesBuffer.length >= BATCH_SIZE) {
+
+        if (messagesBuffer.length >= BATCH_SIZE && !isProcessing) {
+          isProcessing = true;
           await processMessages()
+
         }
       }
     },
@@ -129,29 +136,34 @@ const locationWorker = async (channel: amqp.Channel) => {
   const processMessages = async () => {
     if (messagesBuffer.length > 0) {
       try {
+
         await processBatch(messagesBuffer)
         messageObjects.forEach((msgObj) => {
           channel.ack(msgObj)
         })
+
       } catch (error) {
-        console.error('Error processing batch:', error)
+
         messageObjects.forEach((msgObj) => {
           channel.nack(msgObj)
-          console.log('Not acknowledged message', msgObj.content.toString())
+
         })
       } finally {
         messagesBuffer = []
         messageObjects = []
+        isProcessing = false;
       }
     }
   }
 
   process.on('SIGTERM', async () => {
+    console.log('SIGTERM signal received: closing RabbitMQ connection')
     await processMessages()
     process.exit(0)
   })
 
   process.on('SIGINT', async () => {
+    console.log('SIGINT signal received: closing RabbitMQ connection')
     await processMessages()
     process.exit(0)
   })
