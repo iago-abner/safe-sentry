@@ -46,17 +46,19 @@ location.post('/', async (req, res) => {
 
       const flattenedValues = recordsBuffer.flat()
 
-      const result = await pg.query(query, flattenedValues)
+      await pg.query(query, flattenedValues)
 
       recordsBuffer = []
 
-      return res.status(201).json({
-        result
+      res.status(201).json({
+        message: 'batch'
       })
+    } else {
+      res.status(201).json({ message: 'Dados recebidos' })
     }
-    return res.status(201)
+
   } catch (error) {
     console.error('Erro ao enviar dados para o banco:', error)
-    return res.status(500).json({ error: 'Erro ao processar os dados' })
+    res.status(500).json({ error: 'Erro ao processar os dados' })
   }
 })
