@@ -1,3 +1,4 @@
+import { sleep } from "k6";
 import http from "k6/http";
 
 export let options = {
@@ -5,17 +6,12 @@ export let options = {
     { duration: "10s", target: 100 },
     { duration: "10s", target: 200 },
     { duration: "10s", target: 400 },
-    { duration: "10s", target: 800 },
-    { duration: "10s", target: 1000 },
-    // { duration: "50s", target: 2000 },
-    // { duration: "1m", target: 4000 },
-    // { duration: "1m", target: 6000 },
-    // { duration: "1m", target: 8000 },
-    // { duration: "1m", target: 10000 },
-    // { duration: "10s", target: 0 },
+    { duration: "30s", target: 800 },
+    { duration: "30s", target: 1600 },
+    { duration: "30s", target: 3200 },
   ],
   thresholds: {
-    http_req_duration: [{ threshold: "p(95)<1000", abortOnFail: true }],
+    http_req_duration: [{ threshold: "p(99)<1000", abortOnFail: true }],
   },
 };
 
@@ -50,4 +46,6 @@ export default function () {
       "Content-Type": "application/json",
     },
   });
+
+  sleep(1);
 }
