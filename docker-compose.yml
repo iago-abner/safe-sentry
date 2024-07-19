@@ -19,16 +19,15 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 2GB
+          memory: 4GB
         reservations:
           cpus: "0.5"
-          memory: 256M
+          memory: 512M
     networks:
       - application
 
   servernode1: &backend
-    build:
-      context: ./server
+    imagina: iagoabner/nodejs-queue:latest
     container_name: servernode1
     restart: unless-stopped
     ports:
