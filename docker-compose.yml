@@ -6,8 +6,6 @@ services:
     ports:
       - "9042:9042"
     environment:
-      # - CASSANDRA_CLUSTER_NAME=TestCluster
-      # - CASSANDRA_DC=datacenter1
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=cassandra
       - CASSANDRA_RACK=location
@@ -28,8 +26,7 @@ services:
       - application
 
   servergolang1: &servergo
-    build:
-      context: ./server
+    image: iagoabner/golang-cassandra:latest
     container_name: servergolang1
     restart: unless-stopped
     ports:
