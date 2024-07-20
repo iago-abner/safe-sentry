@@ -1,0 +1,16 @@
+---
+- name: copy app folder
+  copy:
+    src: "app"
+    dest: "/home/ec2-user"
+# - name: pull image
+#   community.docker.docker_image:
+#     name: "iagoabner/{{DOCKER_IMAGE_NAME}}:{{ DOCKER_IMAGE_TAG }}"
+#     source: pull
+
+# - name: deploy app
+#   docker_compose:
+#     state: present
+#     project_src: ~/app
+#     files:
+#       - docker-compose.yaml

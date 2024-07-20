@@ -1,0 +1,108 @@
+services:
+  db:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      - POSTGRES_PASSWORD=iago
+      - POSTGRES_USER=iago
+      - POSTGRES_DB=Projeto
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infra/db/boot.sql:/docker-entrypoint-initdb.d/boot.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iago -d Projeto"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+    networks:
+      - application
+
+  backend1: &backend
+    build:
+      context: ./backend
+    container_name: backend1
+    restart: unless-stopped
+    ports:
+      - "4240:4242"
+    environment:
+      - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - rabbitmq
+      - db
+    networks:
+      - application
+
+  backend2:
+    <<: *backend
+    container_name: backend2
+    restart: unless-stopped
+    ports:
+      - "4241:4242"
+    environment:
+      - DATABASE_URL=postgresql://iago:iago@db:5432/Projeto
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - rabbitmq
+      - db
+    networks:
+      - application
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend1
+      - backend2
+    networks:
+      - application
+
+  nginx:
+    image: nginx:1.27
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend1
+      - backend2
+    networks:
+      - application
+
+  rabbitmq:
+    image: rabbitmq:3.13.3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - ./infra/rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - application
+      - monitoring
+
+volumes:
+  grafana-data:
+
+networks:
+  application:
+    driver: bridge
+  monitoring:
+    driver: bridge
