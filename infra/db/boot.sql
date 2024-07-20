@@ -1,6 +1,5 @@
 CREATE DATABASE Projeto;
 
-
 CREATE TABLE IF NOT EXISTS Localizacao (
     id SERIAL PRIMARY KEY,
     rastreador_id INT,
@@ -16,5 +15,4 @@ CREATE TABLE IF NOT EXISTS Localizacao (
     odometro DECIMAL(10, 2),
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 
