@@ -1,4 +1,0 @@
-db/postgres-data
-monitoring
-rabbitmq-data
-ansible/inventory/hosts.yaml

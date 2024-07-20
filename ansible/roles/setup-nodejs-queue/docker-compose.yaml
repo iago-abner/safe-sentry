@@ -26,8 +26,8 @@ services:
     networks:
       - application
 
-  servernode1: &server
-    image: iagoabner/nodejs:latest
+  servernode1: &backend
+    image: iagoabner/nodejs-queue:latest
     container_name: servernode1
     restart: unless-stopped
     ports:
@@ -48,7 +48,7 @@ services:
       - application
 
   servernode2:
-    <<: *server
+    <<: *backend
     container_name: servernode2
     restart: unless-stopped
     ports:
