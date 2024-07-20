@@ -1,4 +1,4 @@
 db/postgres-data
-monitoring/grafana-data
+monitoring
 rabbitmq-data
 ansible/inventory/hosts.yaml
