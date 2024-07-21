@@ -1,0 +1,18 @@
+services:
+  cassandra:
+    image: cassandra:4
+    container_name: cassandra
+    restart: unless-stopped
+    ports:
+      - "9042:9042"
+    env_file:
+      - ./.env
+    volumes:
+      - ./data.cql:/data.cql
+      - ./init.sh:/init.sh
+    command: /init.sh
+    deploy:
+      resources:
+        reservations:
+          cpus: "1"
+          memory: 512M

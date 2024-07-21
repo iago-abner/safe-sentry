@@ -20,3 +20,10 @@
     name: ec2-user
     groups: docker
     append: yes
+
+# teste
+- name: Force newgrp for ec2-user
+  shell: "newgrp docker && exit"
+  become: true
+  become_user: ec2-user
+  ignore_errors: true

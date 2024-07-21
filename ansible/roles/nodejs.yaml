@@ -1,0 +1,6 @@
+- hosts: application1:application2
+  become: true
+  roles:
+    - utils/docker
+    - utils/docker-compose
+    - setup-applications/nodejs
