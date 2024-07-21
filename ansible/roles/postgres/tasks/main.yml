@@ -1,0 +1,8 @@
+---
+- name: copy app folder
+  copy:
+    src: "postgres"
+    dest: "/home/ec2-user"
+
+- name: Create a data container
+  shell: "docker compose -f /home/ec2-user/postgres/docker-compose.yaml up -d"
