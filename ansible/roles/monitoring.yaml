@@ -1,6 +1,6 @@
 - hosts: monitoring
   become: true
   roles:
-    - utils/docker
-    - utils/docker-compose
+    # - utils/docker
+    # - utils/docker-compose
     - monitoring

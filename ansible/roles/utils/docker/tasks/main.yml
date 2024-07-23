@@ -21,7 +21,6 @@
     groups: docker
     append: yes
 
-# teste
 - name: Force newgrp for ec2-user
   shell: "newgrp docker && exit"
   become: true

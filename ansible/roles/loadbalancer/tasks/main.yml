@@ -7,4 +7,4 @@
 - name: Create container
   become: true
   become_user: ec2-user
-  shell: "docker compose -f /home/ec2-user/files/docker-compose.yaml up -d"
+  shell: "docker compose -f /home/ec2-user/files/docker-compose.yaml up -d --force-recreate"

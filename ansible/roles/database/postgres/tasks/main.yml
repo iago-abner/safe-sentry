@@ -5,4 +5,4 @@
     dest: "/home/ec2-user"
 
 - name: Create container
-  shell: "docker compose -f /home/ec2-user/files/docker-compose.yaml up -d"
+  shell: "docker compose -f /home/ec2-user/files/docker-compose.yaml up -d --force-recreate"

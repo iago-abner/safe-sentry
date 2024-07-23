@@ -41,7 +41,7 @@ export default function () {
     criado_em: new Date().toISOString(),
   };
 
-  http.post("http://localhost:80/location", JSON.stringify(payload), {
+  http.post("http://172.31.44.225:80/location", JSON.stringify(payload), {
     headers: {
       "Content-Type": "application/json",
     },

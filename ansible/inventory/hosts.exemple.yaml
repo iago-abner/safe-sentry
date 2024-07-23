@@ -1,8 +1,28 @@
-app:
+all:
   hosts:
-    control:
+    monitoring:
       become: true
-      ansible_host: ip
+      ansible_host: 0.0.0.0
+      ansible_user: ec2-user
+    loadbalancer:
+      become: true
+      ansible_host: 0.0.0.0
+      ansible_user: ec2-user
+    queue:
+      become: true
+      ansible_host: 0.0.0.0
+      ansible_user: ec2-user
+    application1:
+      become: true
+      ansible_host: 0.0.0.0
+      ansible_user: ec2-user
+    application2:
+      become: true
+      ansible_host: 0.0.0.0
+      ansible_user: ec2-user
+    database:
+      become: true
+      ansible_host: 0.0.0.0
       ansible_user: ec2-user
   vars:
-    ansible_ssh_private_key_file: ~/.ssh/key.pem
+    ansible_ssh_private_key_file: ~/.ssh/safe-sentry.pem
