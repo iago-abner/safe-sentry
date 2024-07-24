@@ -3,4 +3,4 @@
   roles:
     # - utils/docker
     # - utils/docker-compose
-    - setup-applications/nodejs
+    - setup-applications/nodejs-queue

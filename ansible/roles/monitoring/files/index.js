@@ -9,6 +9,7 @@ export let options = {
     { duration: "30s", target: 800 },
     { duration: "30s", target: 1600 },
     { duration: "30s", target: 3200 },
+    { duration: "30s", target: 6400 },
   ],
   thresholds: {
     http_req_duration: [{ threshold: "p(99)<1000", abortOnFail: true }],

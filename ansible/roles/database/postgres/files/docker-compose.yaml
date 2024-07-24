@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15
     container_name: postgres
+    restart: unless-stopeed
     ports:
       - "5432:5432"
     volumes:
@@ -18,3 +19,10 @@ services:
         reservations:
           cpus: "1"
           memory: 512M
+
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"

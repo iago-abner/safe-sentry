@@ -1,24 +1,45 @@
-- name: Download k6 tarball
-  get_url:
-    url: https://github.com/grafana/k6/releases/download/v0.42.0/k6-v0.42.0-linux-amd64.tar.gz
-    dest: /tmp/k6-v0.42.0-linux-amd64.tar.gz
+---
+- name: Get the latest k6 release URL
+  uri:
+    url: https://api.github.com/repos/grafana/k6/releases/latest
+    return_content: yes
+  register: k6_release
 
-- name: Extract k6 tarball
+- name: Set k6 download URL
+  set_fact:
+    k6_download_url: "{{ k6_release.json.assets | selectattr('name', 'match', 'linux-amd64') | map(attribute='browser_download_url') | first }}"
+
+- name: Download k6 tar.gz
+  get_url:
+    url: "{{ k6_download_url }}"
+    dest: /tmp/k6.tar.gz
+
+- name: Extract k6 tar.gz
   unarchive:
-    src: /tmp/k6-v0.42.0-linux-amd64.tar.gz
+    src: /tmp/k6.tar.gz
     dest: /tmp/
     remote_src: yes
 
 - name: Move k6 binary to /usr/local/bin
-  command: mv /tmp/k6-v0.42.0-linux-amd64/k6 /usr/local/bin/
+  command: mv /tmp/k6-v*/k6 /usr/local/bin/k6
+  args:
+    creates: /usr/local/bin/k6
 
 - name: Ensure k6 binary is executable
   file:
     path: /usr/local/bin/k6
     mode: "0755"
-    state: file
 
-- name: Clean up tarball and extracted files
-  file:
-    path: /tmp/k6-v0.42.0-linux-amd64.tar.gz
-    state: absent
+- name: Verify k6 installation
+  command: k6 version
+  register: k6_version
+
+- name: Print k6 version
+  debug:
+    msg: "k6 version installed: {{ k6_version.stdout }}"
+# - name: Install tar and gzip
+#   yum:
+#     name:
+#       - tar
+#       - gzip
+#     state: present

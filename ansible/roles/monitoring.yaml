@@ -2,5 +2,6 @@
   become: true
   roles:
     # - utils/docker
-    # - utils/docker-compose
+    - utils/docker-compose
+    - utils/k6
     - monitoring

@@ -9,3 +9,10 @@ services:
       - ./.env
     volumes:
       - ./rabbitmq-data:/var/lib/rabbitmq
+
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"

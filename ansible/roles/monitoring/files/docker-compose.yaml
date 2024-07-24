@@ -2,6 +2,7 @@ services:
   influxdb:
     image: influxdb:1.8
     container_name: influxdb
+    restart: unless-stopped
     ports:
       - "8086:8086"
     environment:
@@ -29,6 +30,7 @@ services:
   prometheus:
     image: prom/prometheus
     container_name: prometheus
+    restart: unless-stopped
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -37,6 +39,7 @@ services:
   node_exporter:
     image: prom/node-exporter
     container_name: node_exporter
+    restart: unless-stopped
     ports:
       - "9100:9100"
 
