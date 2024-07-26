@@ -1,18 +1,18 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq" // Importação anônima do driver do PostgreSQL
+	_ "github.com/lib/pq"
 	"github.com/streadway/amqp"
 )
 
@@ -37,7 +37,6 @@ var messageObjects []*amqp.Delivery
 const batchSize = 100
 
 func main() {
-	// Carregar variáveis de ambiente do arquivo .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
@@ -46,14 +45,12 @@ func main() {
 	databaseURL := os.Getenv("DATABASE_URL") + "?sslmode=disable"
 	rabbitmqURL := os.Getenv("RABBITMQ_URL")
 
-	// Setup database connection
 	db, err = sql.Open("postgres", databaseURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
-	// Setup RabbitMQ connection
 	conn, err := amqp.Dial(rabbitmqURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
@@ -79,45 +76,38 @@ func main() {
 		log.Fatalf("Failed to declare a queue: %v", err)
 	}
 
-	// Setup HTTP server
-	http.HandleFunc("/location", locationHandler)
-	server := &http.Server{Addr: ":4242"}
+	app := fiber.New()
 
-	// Handle shutdown signals
+	app.Post("/location", locationHandler)
+
+	go locationWorker(queueName)
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		<-sigs
 		log.Println("Shutting down server...")
-		server.Shutdown(context.Background())
+		if err := app.Shutdown(); err != nil {
+			log.Fatalf("Server Shutdown Failed:%+v", err)
+		}
 	}()
 
-	go locationWorker(queueName)
-
 	log.Println("Server is running on port 4242")
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := app.Listen(":4242"); err != nil {
 		log.Fatalf("ListenAndServe(): %v", err)
 	}
 }
 
-func locationHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
+func locationHandler(c *fiber.Ctx) error {
 	var message TLocation
-	err := json.NewDecoder(r.Body).Decode(&message)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	if err := c.BodyParser(&message); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid request body")
 	}
 
 	body, err := json.Marshal(message)
 	if err != nil {
-		http.Error(w, "Failed to marshal message", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to marshal message")
 	}
 
 	err = channel.Publish(
@@ -128,16 +118,16 @@ func locationHandler(w http.ResponseWriter, r *http.Request) {
 		amqp.Publishing{
 			ContentType:  "application/json",
 			Body:         body,
-			DeliveryMode: amqp.Persistent,
+			DeliveryMode: amqp.Transient,
 		},
 	)
 	if err != nil {
-		http.Error(w, "Failed to publish message", http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to publish message")
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintln(w, `{"message": "Message published"}`)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Message published",
+	})
 }
 
 func locationWorker(queueName string) {
@@ -177,44 +167,22 @@ func processMessages() {
 		return
 	}
 
-	tx, err := db.Begin()
-	if err != nil {
-		log.Printf("Error starting transaction: %v", err)
-		nackMessages()
-		return
+	valueStrings := make([]string, 0, len(messagesBuffer))
+	valueArgs := make([]interface{}, 0, len(messagesBuffer)*10)
+
+	for i, message := range messagesBuffer {
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			i*10+1, i*10+2, i*10+3, i*10+4, i*10+5, i*10+6, i*10+7, i*10+8, i*10+9, i*10+10))
+		valueArgs = append(valueArgs, message.Latitude, message.Longitude, message.Velocidade, message.HorarioRastreador,
+			message.Bateria, message.BateriaVeiculo, message.Ignicao, message.Altitude, message.Direcao, message.Odometro)
 	}
 
-	stmt, err := tx.Prepare(`
-		INSERT INTO localizacao (
-			latitude, longitude, velocidade, horario_rastreador,
-			bateria, bateria_veiculo, ignicao, altitude, direcao, odometro
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`)
-	if err != nil {
-		log.Printf("Error preparing statement: %v", err)
-		tx.Rollback()
-		nackMessages()
-		return
-	}
-	defer stmt.Close()
+	stmt := fmt.Sprintf("INSERT INTO localizacao (latitude, longitude, velocidade, horario_rastreador, bateria, bateria_veiculo, ignicao, altitude, direcao, odometro) VALUES %s",
+		strings.Join(valueStrings, ","))
+	_, err := db.Exec(stmt, valueArgs...)
 
-	for _, message := range messagesBuffer {
-		_, err := stmt.Exec(
-			message.Latitude, message.Longitude, message.Velocidade, message.HorarioRastreador,
-			message.Bateria, message.BateriaVeiculo, message.Ignicao, message.Altitude,
-			message.Direcao, message.Odometro,
-		)
-		if err != nil {
-			log.Printf("Error executing statement: %v", err)
-			tx.Rollback()
-			nackMessages()
-			return
-		}
-	}
-
-	err = tx.Commit()
 	if err != nil {
-		log.Printf("Error committing transaction: %v", err)
+		log.Printf("Error executing batch insert: %v", err)
 		nackMessages()
 		return
 	}
