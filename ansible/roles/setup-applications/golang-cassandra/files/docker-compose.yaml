@@ -1,12 +1,12 @@
 services:
-  nginx:
-    image: nginx:1.27
-    container_name: nginx
+  golang:
+    image: iagoabner/golang-cassandra:latest
+    container_name: golang
     restart: unless-stopped
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - "4242:4242"
+    env_file:
+      - ./.env
 
   node_exporter:
     image: prom/node-exporter
