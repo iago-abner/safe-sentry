@@ -14,11 +14,6 @@ services:
       retries: 3
     env_file:
       - ./.env
-    deploy:
-      resources:
-        reservations:
-          cpus: "1"
-          memory: 512M
 
   node_exporter:
     image: prom/node-exporter

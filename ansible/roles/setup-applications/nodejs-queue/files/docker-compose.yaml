@@ -4,14 +4,9 @@ services:
     container_name: servernode-queue
     restart: unless-stopped
     ports:
-      - "4240:4242"
+      - "4242:4242"
     env_file:
       - ./.env
-    deploy:
-      resources:
-        reservations:
-          cpus: "0.5"
-          memory: 256M
 
   node_exporter:
     image: prom/node-exporter

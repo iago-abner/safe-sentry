@@ -11,11 +11,6 @@ services:
       - ./data.cql:/data.cql
       - ./init.sh:/init.sh
     command: /init.sh
-    deploy:
-      resources:
-        reservations:
-          cpus: "1"
-          memory: 512M
 
   node_exporter:
     image: prom/node-exporter

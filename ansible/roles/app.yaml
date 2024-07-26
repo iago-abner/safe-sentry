@@ -1,4 +1,4 @@
-- hosts: application1:application2
+- hosts: application1
   become: true
   roles:
     # - utils/docker
