@@ -1,6 +1,6 @@
-- hosts: application1
+- hosts: application2 #:application2
   become: true
   roles:
-    # - utils/docker
-    # - utils/docker-compose
-    - setup-applications/nodejs-queue
+    - utils/docker
+    - utils/docker-compose
+    - setup-applications/golang

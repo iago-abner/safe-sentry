@@ -1,9 +1,16 @@
 services:
-  servergolang:
+  golang:
     image: iagoabner/golang-cassandra:latest
-    container_name: servergolang
+    container_name: golang
     restart: unless-stopped
     ports:
       - "4242:4242"
     env_file:
       - ./.env
+
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"

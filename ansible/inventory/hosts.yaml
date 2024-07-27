@@ -1,0 +1,28 @@
+all:
+  hosts:
+    monitoring:
+      become: true
+      ansible_host: 0.0.0.0
+      ansible_user: ec2-user
+    loadbalancer:
+      become: true
+      ansible_host: 107.23.198.207
+      ansible_user: ec2-user
+    queue:
+      become: true
+      ansible_host: 54.146.47.152
+      ansible_user: ec2-user
+    application1:
+      become: true
+      ansible_host: 54.224.44.222
+      ansible_user: ec2-user
+    application2:
+      become: true
+      ansible_host: 54.242.37.106
+      ansible_user: ec2-user
+    database:
+      become: true
+      ansible_host: 0.0.0.0
+      ansible_user: ec2-user
+  vars:
+    ansible_ssh_private_key_file: ~/.ssh/safe-sentry.pem
