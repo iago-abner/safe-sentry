@@ -3,13 +3,11 @@ import http from "k6/http";
 
 export let options = {
   stages: [
-    { duration: "10s", target: 100 },
-    { duration: "10s", target: 200 },
-    { duration: "10s", target: 400 },
-    { duration: "30s", target: 800 },
-    { duration: "30s", target: 1600 },
-    { duration: "30s", target: 3200 },
-    { duration: "30s", target: 6400 },
+    { duration: "30s", target: 1000 },
+    { duration: "30s", target: 2000 },
+    { duration: "30s", target: 4000 },
+    { duration: "30s", target: 8000 },
+    { duration: "30s", target: 16000 },
   ],
   thresholds: {
     http_req_duration: [{ threshold: "p(99)<1000", abortOnFail: true }],
@@ -42,7 +40,7 @@ export default function () {
     criado_em: new Date().toISOString(),
   };
 
-  http.post("http://172.31.86.113:80/location", JSON.stringify(payload), {
+  http.post("http://172.31.43.12:80/location", JSON.stringify(payload), {
     headers: {
       "Content-Type": "application/json",
     },
