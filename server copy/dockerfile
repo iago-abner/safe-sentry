@@ -1,0 +1,36 @@
+# Etapa 1: Construir o binário
+FROM golang:1.22.5 AS builder
+
+# Definir o diretório de trabalho
+WORKDIR /app
+
+# Copiar os arquivos go.mod e go.sum e baixar as dependências
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copiar o restante dos arquivos do projeto
+COPY . .
+
+# Compilar o binário
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+# Etapa 2: Criar a imagem final
+FROM alpine:3.20.1
+
+# Instalar dependências do sistema
+RUN apk --no-cache add ca-certificates
+
+# Definir o diretório de trabalho
+WORKDIR /root/
+
+# Copiar o binário do build anterior
+COPY --from=builder /app/main .
+
+# Copiar o arquivo .env para configurar as variáveis de ambiente
+COPY .env .
+
+# Expor a porta que o serviço vai rodar
+EXPOSE 4242
+
+# Comando para rodar o binário
+CMD ["./main"]
