@@ -1,6 +1,5 @@
 CREATE DATABASE Projeto;
 
-
 CREATE TABLE IF NOT EXISTS Localizacao (
     id SERIAL PRIMARY KEY,
     rastreador_id INT,
@@ -14,7 +13,7 @@ CREATE TABLE IF NOT EXISTS Localizacao (
     altitude DECIMAL(7, 2),
     direcao DECIMAL(5, 2),
     odometro DECIMAL(10, 2),
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (rastreador_id) REFERENCES Rastreador(id) ON DELETE CASCADE
 );
-
 
