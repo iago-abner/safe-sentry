@@ -6,11 +6,8 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/gocql/gocql"
-	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/streadway/amqp"
 )
@@ -64,59 +61,8 @@ func main() {
 		log.Fatalf("Failed to declare a queue: %v", err)
 	}
 
-	app := fiber.New()
-	app.Post("/location", locationHandler)
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigs
-		log.Println("Shutting down server...")
-		if err := app.Shutdown(); err != nil {
-			log.Fatalf("Server Shutdown Failed:%+v", err)
-		}
-	}()
-
 	go locationWorker(queueName, session)
 
-	log.Println("Server is running on port 4242")
-	if err := app.Listen(":4242"); err != nil {
-		log.Fatalf("ListenAndServe(): %v", err)
-	}
-}
-
-func locationHandler(c *fiber.Ctx) error {
-	var message models.TLocation
-	if err := c.BodyParser(&message); err != nil {
-		log.Printf("Invalid request body: %v", err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
-	}
-
-	body, err := json.Marshal(message)
-	if err != nil {
-		log.Printf("Failed to marshal message: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to marshal message"})
-	}
-
-	err = channel.Publish(
-		"",
-		"location_queue",
-		false,
-		false,
-		amqp.Publishing{
-			ContentType:  "application/json",
-			Body:         body,
-			DeliveryMode: amqp.Persistent,
-		},
-	)
-	if err != nil {
-		log.Printf("Error publishing message: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to publish message"})
-	}
-
-	log.Printf("Message published to queue")
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "Message published"})
 }
 
 func locationWorker(queueName string, session *gocql.Session) {
@@ -133,11 +79,7 @@ func locationWorker(queueName string, session *gocql.Session) {
 		log.Fatalf("Failed to register a consumer: %v", err)
 	}
 
-
-
 	for msg := range msgs {
-		log.Printf("Received a message")
-
 		var message models.TLocation
 		err := json.Unmarshal(msg.Body, &message)
 		if err != nil {
@@ -146,25 +88,19 @@ func locationWorker(queueName string, session *gocql.Session) {
 			continue
 		}
 
-
-
 		messagesBuffer = append(messagesBuffer, message)
 		messageObjects = append(messageObjects, &msg)
-
 
 		if len(messagesBuffer) >= batchSize {
 			processMessages(session)
 		}
 	}
-
-	log.Println("Worker stopped.")
 }
 
 func processMessages(session *gocql.Session) {
 	if len(messagesBuffer) == 0 {
 		return
 	}
-
 
 	batch := session.NewBatch(gocql.UnloggedBatch)
 	for _, message := range messagesBuffer {
@@ -199,7 +135,6 @@ func ackMessages() {
 	for _, msg := range messageObjects {
 		msg.Ack(false)
 	}
-	log.Println("Messages acknowledged")
 	messagesBuffer = nil
 	messageObjects = nil
 }

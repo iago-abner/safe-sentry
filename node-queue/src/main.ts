@@ -1,27 +1,9 @@
 import 'dotenv/config'
 import express from 'express'
-import * as amqp from 'amqplib'
 import { Pool } from 'pg'
-
-class PostgresRespository {
-  private static instance: PostgresRespository
-  public pool: Pool
-
-  private constructor() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL
-    })
-  }
-
-  public static getInstance(): PostgresRespository {
-    if (!PostgresRespository.instance) {
-      PostgresRespository.instance = new PostgresRespository()
-    }
-    return PostgresRespository.instance
-  }
-}
-
-const pg = PostgresRespository.getInstance().pool
+import * as amqp from 'amqplib';
+import RabbitmqRepository from './repositories/rabbitmq'
+import PostgresRespository from './repositories/pg'
 
 type TLocation = {
   latitude: number
@@ -42,35 +24,13 @@ const PORT = 4242
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-export let channel: amqp.Channel
-
 const setup = async () => {
-  channel = await rabbitmq({ queueName: 'location_queue' })
-  locationWorker(channel)
+  const pg = PostgresRespository.getInstance().pool
+  const channel = await RabbitmqRepository.getInstance('location_queue');
+  locationWorker(channel, pg)
 }
 
-app.post('/location', async (req, res) => {
-  try {
-    const message = req.body
-
-    const registerQueue = channel.sendToQueue(
-      'location_queue',
-      Buffer.from(JSON.stringify(message)),
-      {
-        persistent: false
-      }
-    )
-
-    res.status(201).json({
-      registerQueue
-    })
-  } catch (error) {
-    console.error('Erro ao enviar mensagem para o RabbitMQ:', error)
-    res.status(500).json({ error: 'Erro ao enviar dados para a fila' })
-  }
-})
-
-const processBatch = async (messages: TLocation[]) => {
+const processBatch = async (messages: TLocation[], pg: Pool) => {
   const values = messages.map((msg) => [
     msg.latitude,
     msg.longitude,
@@ -102,8 +62,7 @@ const processBatch = async (messages: TLocation[]) => {
   }
 }
 
-
-const locationWorker = async (channel: amqp.Channel) => {
+const locationWorker = async (channel: amqp.Channel, pg: Pool) => {
   const QUEUE_NAME = 'location_queue'
   const BATCH_SIZE = 100
   let messagesBuffer: TLocation[] = []
@@ -124,7 +83,6 @@ const locationWorker = async (channel: amqp.Channel) => {
         if (messagesBuffer.length >= BATCH_SIZE && !isProcessing) {
           isProcessing = true;
           await processMessages()
-
         }
       }
     },
@@ -137,7 +95,7 @@ const locationWorker = async (channel: amqp.Channel) => {
     if (messagesBuffer.length > 0) {
       try {
 
-        await processBatch(messagesBuffer)
+        await processBatch(messagesBuffer, pg)
         messageObjects.forEach((msgObj) => {
           channel.ack(msgObj)
         })
@@ -167,18 +125,6 @@ const locationWorker = async (channel: amqp.Channel) => {
     await processMessages()
     process.exit(0)
   })
-}
-
-async function rabbitmq({ queueName }: { queueName: string }) {
-  try {
-    const connection = await amqp.connect(process.env.RABBITMQ_URL)
-    const channel = await connection.createChannel()
-    await channel.assertQueue(queueName, { durable: true })
-    return channel
-  } catch (error) {
-    console.error('Failed to setup RabbitMQ:', error)
-    process.exit(1)
-  }
 }
 
 app.listen(PORT, async () => {

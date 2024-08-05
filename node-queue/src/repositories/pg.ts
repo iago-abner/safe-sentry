@@ -18,4 +18,4 @@ class PostgresRespository {
   }
 }
 
-export default PostgresRespository.getInstance().pool
+export default PostgresRespository
