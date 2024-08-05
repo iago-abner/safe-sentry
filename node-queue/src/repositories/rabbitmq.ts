@@ -1,16 +1,16 @@
-import amqp from 'amqplib';
+import * as amqp from 'amqplib';
 
 class RabbitmqRepository {
-  private static instance: RabbitMQ;
+  private static instance: RabbitmqRepository;
   private channel: amqp.Channel | null = null;
 
   private constructor() {}
 
   public static async getInstance(queueName: string): Promise<amqp.Channel> {
-    if (!RabbitMQ.instance) {
-      RabbitMQ.instance = new RabbitMQ();
+    if (!RabbitmqRepository.instance) {
+      RabbitmqRepository.instance = new RabbitmqRepository();
     }
-    return RabbitMQ.instance.getChannel(queueName);
+    return RabbitmqRepository.instance.getChannel(queueName);
   }
 
   private async getChannel(queueName: string): Promise<amqp.Channel> {

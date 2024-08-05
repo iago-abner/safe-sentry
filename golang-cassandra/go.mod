@@ -1,4 +1,4 @@
-module api
+module gocql
 
 go 1.22.5
 

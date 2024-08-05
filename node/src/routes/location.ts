@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import pg from '../repositories/pg'
+import { TLocation } from '../types/location'
 
 export const location = Router()
 
@@ -20,7 +21,7 @@ location.post('/', async (req, res) => {
       altitude,
       direcao,
       odometro
-    } = req.body
+    } = req.body as TLocation
 
     recordsBuffer.push([
       latitude,

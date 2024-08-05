@@ -1,14 +1,12 @@
 package handlers
 
 import (
-	"api/models"
 	"encoding/json"
+	"goqueue/models"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/streadway/amqp"
 )
-
-
 
 func LocationHandler(c *fiber.Ctx, channel *amqp.Channel) error {
 	var message models.TLocation
