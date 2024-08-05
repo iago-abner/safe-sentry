@@ -11,6 +11,15 @@ services:
     volumes:
       - ./rabbitmq-data:/var/lib/rabbitmq
 
+  message_dispatcher:
+    image: image
+    restart: unless-stopped
+    container_name: message_dispatcher
+    ports:
+      - "4242:4242"
+    env_file:
+      - ./.env
+
   node_exporter:
     image: prom/node-exporter
     container_name: node_exporter

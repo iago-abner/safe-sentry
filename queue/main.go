@@ -1,7 +1,7 @@
 package main
 
 import (
-	"api/handlers"
+	"goqueue/handlers"
 	"log"
 	"os"
 	"os/signal"

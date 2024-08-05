@@ -1,4 +1,4 @@
-module api
+module goqueue
 
 go 1.22.5
 
